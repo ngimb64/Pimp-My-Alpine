@@ -1,0 +1,345 @@
+#!/bin/sh
+
+# Note: before exporting environment variables in the terminal, command line history
+#       should be temporary disabled with `rm ~/.ash_history && ln -s /dev/null ~/.ash_history`.
+#       When it is time to re-enable history use `rm -f ~/.ash_history`, keep in mind the
+#       command deletes the original history so make a copy if retaining it is desired.
+
+# Environment variabless required for proper execution
+#   - ADMIN:  The name of the admin user to create
+#   - ADMIN_PASS:  The password of the admin user
+#   - USER:  The name of the user to create
+#   - USER_PASS:  The password of the low privileged user
+#   - ROOT_PASS:  The root password to be configured
+
+# Enviorment variables to export for customization (optional):
+#   - SSID:  The SSID of the wireless network to connect to, WIFI_PASS must also be set
+#   - WIFI_PASS:  The password of the wireless network to connect to, SSID must also be set
+#   - HOSTNAME:  The desired hostname to be configured, if not set it will be client
+#                followed by a hyphen and six random characters
+#   - DNS_OPTS:  The IP address of the DNS servers to be used in space separated string
+#                like `export DNS_OPTS="1.1.1.1 1.0.0.1" and also supports domains like
+#                `export DNS_OPTS="-d <domain> 1.1.1.1 1.0.0.1"
+#   - SSH:  The SSH service setting, if not set to none the default openssh is used
+#   - NTP:  The NTP service setting, if not set to none the default openntpd is used
+#   - DISK_OPTS:  The disk options, if not set the disk type is system at /dev/sda, disk
+#                 type can be changed to data like `export DISK_OPTS="-m data /dev/sda2"`
+#   - PACKAGES:  The list of packages to be installed after initial setup,
+#                supports multiple packages as a space separated string like
+#                `export PACKAGES="package1 package2 package3"`
+
+
+# Function to generate random string of passed in length
+generate_random_string() {
+    length="$1"
+    tr -dc 'A-Za-z0-9' < /dev/urandom | head -c "$length"
+    echo
+}
+
+
+# Function for handling file creation errors with touch command
+file_err() {
+    echo "[*] Error: Cannot create file $1" >&2
+}
+
+
+# Function to setup a persistent wireless connection
+wifi_setup() {
+    # Install needed packages from local cache
+    apk add iw linux-firmware wireless-tools wpa_supplicant
+    # Set wlan interface to active
+    ip link set wlan0 up
+    # Assign SSID and password in config file
+    wpa_passphrase "$SSID" "$WIFI_PASS" > /etc/wpa_supplicant/wpa_supplicant.conf
+    # Start the service daemon in the background
+    wpa_supplicant -B -i wlan0 -c /etc/wpa_supplicant/wpa_supplicant.conf
+    # Configure wireless interface with IP address
+    udhcp -i wlan0
+    # Add wireless interface to /etc/network/interfaces
+    printf "%s\n%s\n%s\n" "auto lo" "auto wlan0" "iface wlan0 inet dhcp" >> /etc/network/interfaces
+    # Manually restart (or start) networking
+    rc-service networking --quiet restart &
+    #ensure that networking is set to start on boot
+    rc-update add networking boot
+    # configure wpa_supplicant to start on boot
+    rc-update add wpa_supplicant boot
+}
+
+
+# Function for handling errors when validating environment variables
+missing_var_err() {
+    # Print error and exit
+    echo "[*] Error: $1 enviroment variable must be set with export command prior to execution" >&2
+    exit 1
+}
+
+
+# Disable command history
+rm -f ~/.ash_history && ln -s /dev/null ~/.ash_history
+
+# If the admin variable is not present
+if [ -z "$ADMIN" ]; then
+    # Print error and exit
+    missing_var_err "ADMIN"
+fi
+
+# If the admin password variable is not present
+if [ -z "$ADMIN_PASS" ]; then
+    # Print error and exit
+    missing_var_err "ADMIN_PASS"
+fi
+
+# If the user variable is not present
+if [ -z "$USER" ]; then
+    # Print error and exit
+    missing_var_err "USER"
+fi
+
+# If the user pass variable is not present
+if [ -z "$USER_PASS" ]; then
+    # Print error and exit
+    missing_var_err "USER_PASS"
+fi
+
+# If the root password variable is not present
+if [ -z "$ROOT_PASS" ]; then
+    # Print error and exit
+    missing_var_err "ROOT_PASS"
+fi
+
+# If WiFi SSID and password are present variables
+if [ -n "$SSID" ] && [ -n "$WIFI_PASS" ]; then
+    # Set up a WiFi connection
+    wifi_setup
+fi
+
+# If the hostname variable is not present
+if [ -z "$HOSTNAME" ]; then
+    # Set the system hostname to default
+    HOSTNAME="client-$(generate_random_string 6)"
+fi
+
+# If the DNS servers variable is not present
+if [ -z "$DNS_OPTS" ]; then
+    # Set the DNS servers to cloudflare default
+    DNS_OPTS="1.1.1.1 1.0.0.1"
+fi
+
+# If the SSH service is not equal to none
+if [ "$SSH" != "none" ]; then
+    # Use the default openntpd
+    NTP="openssh"
+fi
+
+# If the NTP service is not equal to none
+if [ "$NTP" != "none" ]; then
+    # Use the default openntpd
+    NTP="openntpd"
+fi
+
+# If the disk options variable is not present
+if [ -z "$DISK_OPTS" ]; then
+    # Set the DNS servers to cloudflare default
+    DNS_OPTS="-m sys /dev/sda"
+fi
+
+# Set the answer file name
+answerFile="/tmp/answers.cfg"
+# Create the answer file for setup-alpine script
+touch "$answerFile" || file_err "$answerFile"
+cat > "$answerFile" <<-__EOF__
+# Use US layout with US variant
+KEYMAPOPTS="us us"
+
+# Set hostname
+HOSTNAMEOPTS=$HOSTNAME
+
+# Set device manager to mdev
+DEVDOPTS=mdev
+
+# Contents of /etc/network/interfaces
+INTERFACESOPTS="auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet dhcp
+hostname $HOSTNAME-$(generate_random_string 6)
+"
+
+# Set CloudFlare as DNS servers
+DNSOPTS="$DNS_OPTS"
+
+# Set timezone to UTC
+TIMEZONEOPTS="UTC"
+
+# set http/ftp proxy
+PROXYOPTS=none
+
+# Add first mirror (CDN)
+APKREPOSOPTS="-1"
+
+# Create admin user
+USEROPTS="-a -u -g audio,input,video,netdev $ADMIN"
+
+# Install Openssh
+SSHDOPTS=$SSH
+
+# Use openntpd
+NTPOPTS="$NTP"
+
+# Use /dev/sda as a sys disk
+DISKOPTS="$DISK_OPTS"
+
+# Disable dedicated backup storage
+LBUOPTS=none
+
+# Use default apk cache location
+APKCACHEOPTS=none
+__EOF__
+
+# Set up alpine linux with the above configuration
+yes | setup-alpine -e -f "$answerFile"
+
+# Set the path for post setup-alpine boot script
+bootScript="/etc/local.d/post-setup-alpine.start"
+# Create the post setup-alpine boot script
+touch "$bootScript" || file_err "$bootScript"
+cat > "$bootScript" <<-__EOF__
+#!/bin/sh
+
+# Remove the comment from community url
+sed 's/^#//g' /etc/apk/repositories > /etc/apk/sed-parse
+# Move the above output file to overwrite the original
+mv /etc/apk/sed-parse /etc/apk/repositories
+# Add the testing repository to repositories file
+printf "@testing %s%s\n" "$(tail -n 1 /etc/apk/repositories | sed -E 's|(.*?)(/[^/]+){2}$|\1/|')" edge/testing >> /etc/apk/repositories
+
+# Update package lists
+apk update
+# Upgrade apk if available
+apk add --upgrade apk-tools
+# Upgrade any other available upgrades
+apk upgrade --available
+
+# Get the processor architecture
+ARCH="$(uname -m)"
+
+# If AMD processor is utilized, install CPU microcode
+if [ "\$ARCH" = "x86_64" ]; then
+    apk add amd-ucode
+fi
+
+# If Intel processor is utilized, install CPU microcode
+if [ "\$ARCH" = "i386" ]; then
+    apk add intel-ucode
+fi
+
+# Install ufw and needed packages
+apk add ip6tables logrotate ufw
+# Deny all incoming and outgoing traffic by default
+ufw default deny incoming
+ufw default deny outgoing
+# Open SSH port and limit connection attempts if not none
+[ "$SSH" != "none" ] && echo "uft limit SSH"
+# Allow outgoing NTP if not none
+[ "$NTP" != "none" ] && echo "ufw allow out 123/udp"
+# Configure outgoing HTTP and DNS for apk to work
+ufw allow out DNS
+ufw allow out 80/tcp
+# Enable ufw and add to rc boot scripts
+ufw enable
+rc-update add ufw
+
+# If packages is a present variable
+if [ -n "$PACKAGES" ]; then
+    # Iterate through space separated packages string
+    for element in $PACKAGES; do
+        # Install current package in string
+        apk add "\$element"
+    done
+fi
+
+# Set the root password
+printf "%s:%s" "root" "$ROOT_PASS" | chpasswd
+# Set the admin user password
+printf "%s:%s" "$ADMIN" "$ADMIN_PASS" | chpasswd
+# Create a low privilege user on the system
+adduser -D -h "/home/$USER" -s /bin/ash "$USER"
+# Set the low privilege user password
+printf "%s:%s" "$USER" "$USER_PASS" | chpasswd
+# Lock the root account
+passwd -l root
+
+# Disable SSH root logins
+sed -i 's/^#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config
+
+# Generate RSA key for admin user
+mkdir -p "/home/$ADMIN/.ssh"
+ssh-keygen -t rsa -b 4096 -f "/home/$ADMIN/.ssh"
+chown "$ADMIN:$ADMIN" "/home/$ADMIN/.ssh" "/home/$ADMIN/.ssh/id_rsa" "/home/$ADMIN/.ssh/id_rsa.pub"
+
+# Generate RSA key for low privilege user
+mkdir -p "/home/$USER/.ssh"
+ssh-keygen -t rsa -b 4096 -f "/home/$USER/.ssh"
+chown "$USER:$USER" "/home/$USER/.ssh" "/home/$USER/.ssh/id_rsa" "/home/$USER/.ssh/id_rsa.pub"
+
+# Set appropriate permissions on critical directories
+chmod 700 /root
+chmod 600 /boot/grub/grub.cfg
+chmod 600 /etc/ssh/sshd_config
+
+# Add needed packages for audit logging
+apk add audit rsyslog
+# Ensure the proper dir exists for audit rules
+mkdir -p /etc/audit/rules.d
+# Add rules to audit rule file
+auditRuleFile=/etc/audit/rules.d/audit.rules
+{
+    printf "%s\n" "-w /etc/passwd -p wa -k passwd_changes"
+    printf "%s\n" "-w /etc/shadow -p wa -k shadow_changes"
+    printf "%s\n" "-w /etc/group -p wa -k group_changes"
+} >> "\$auditRuleFile"
+
+# Disable unused file systems
+filesysDisableFile=/etc/modprobe.d/disable-filesystems.conf
+{
+    printf "%s\n" "install cramfs /bin/true"
+    printf "%s\n" "install freevxfs /bin/true"
+    printf "%s\n" "install jffs2 /bin/true"
+    printf "%s\n" "install hfs /bin/true"
+    printf "%s\n" "install hfsplus /bin/true"
+    printf "%s\n" "install squashfs /bin/true"
+    printf "%s\n" "install udf /bin/true"
+    printf "%s\n" "install vfat /bin/true"
+} >> "\$filesysDisableFile"
+
+# Tune kernel parameters
+kernelFile=/etc/sysctl.conf
+{
+    printf "%s\n" "net.ipv4.ip_forward = 0"
+    printf "%s\n" "net.ipv4.conf.all.accept_source_route = 0"
+    printf "%s\n" "net.ipv4.conf.all.accept_redirects = 0"
+    printf "%s\n" "net.ipv4.conf.all.secure_redirects = 0"
+    printf "%s\n" "net.ipv4.conf.all.log_martians = 1"
+    printf "%s\n" "net.ipv4.conf.default.log_martians = 1"
+    printf "%s\n" "net.ipv4.icmp_echo_ignore_broadcasts = 1"
+    printf "%s\n" "net.ipv4.icmp_ignore_bogus_error_responses = 1"
+    printf "%s\n" "net.ipv4.tcp_syncookies = 1"
+    printf "%s\n" "net.ipv4.conf.all.send_redirects = 0"
+    printf "%s\n" "net.ipv4.conf.default.send_redirects = 0"
+} >> \$kernelFile
+
+# Overwwrite executed script with random data 100,000 times and delete
+shred -zu -n 100000 "\$(readlink -f "\$0")"
+# Reboot the system again to ensure kernel related config are in effect
+reboot
+__EOF__
+
+# Set the boot scripts permissions to executable
+chmod +x $bootScript
+# Update rc service to execute local scripts on boot
+rc-update add local
+# Delete the original script after local boot script is set
+rm -f "$(readlink -f "$0")"
+# Reboot system which will trigger post setup script
+reboot
