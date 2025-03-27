@@ -29,17 +29,17 @@
 #                `export PACKAGES="package1 package2 package3"`
 
 
+# Function for handling file creation errors with touch command
+file_err() {
+    echo "[*] Error: Cannot create file $1" >&2
+}
+
+
 # Function to generate random string of passed in length
 generate_random_string() {
     length="$1"
     tr -dc 'A-Za-z0-9' < /dev/urandom | head -c "$length"
     echo
-}
-
-
-# Function for handling file creation errors with touch command
-file_err() {
-    echo "[*] Error: Cannot create file $1" >&2
 }
 
 
@@ -78,70 +78,27 @@ missing_var_err() {
 rm -f ~/.ash_history && ln -s /dev/null ~/.ash_history
 
 # If the admin variable is not present
-if [ -z "$ADMIN" ]; then
-    # Print error and exit
-    missing_var_err "ADMIN"
-fi
-
+[ -z "$ADMIN" ] && missing_var_err "ADMIN"
 # If the admin password variable is not present
-if [ -z "$ADMIN_PASS" ]; then
-    # Print error and exit
-    missing_var_err "ADMIN_PASS"
-fi
-
+[ -z "$ADMIN_PASS" ] && missing_var_err "ADMIN_PASS"
 # If the user variable is not present
-if [ -z "$USER" ]; then
-    # Print error and exit
-    missing_var_err "USER"
-fi
-
+[ -z "$USER" ] && missing_var_err "USER"
 # If the user pass variable is not present
-if [ -z "$USER_PASS" ]; then
-    # Print error and exit
-    missing_var_err "USER_PASS"
-fi
-
+[ -z "$USER_PASS" ] && missing_var_err "USER_PASS"
 # If the root password variable is not present
-if [ -z "$ROOT_PASS" ]; then
-    # Print error and exit
-    missing_var_err "ROOT_PASS"
-fi
-
+[ -z "$ROOT_PASS" ] && missing_var_err "ROOT_PASS"
 # If WiFi SSID and password are present variables
-if [ -n "$SSID" ] && [ -n "$WIFI_PASS" ]; then
-    # Set up a WiFi connection
-    wifi_setup
-fi
-
+[ -n "$SSID" ] && [ -n "$WIFI_PASS" ] && wifi_setup
 # If the hostname variable is not present
-if [ -z "$HOSTNAME" ]; then
-    # Set the system hostname to default
-    HOSTNAME="client-$(generate_random_string 6)"
-fi
-
-# If the DNS servers variable is not present
-if [ -z "$DNS_OPTS" ]; then
-    # Set the DNS servers to cloudflare default
-    DNS_OPTS="1.1.1.1 1.0.0.1"
-fi
-
+[ -z "$HOSTNAME" ] && HOSTNAME="client-$(generate_random_string 6)"
+# If the DNS servers variable is not present, set to CloudFlare default
+[ -z "$DNS_OPTS" ] && DNS_OPTS="1.1.1.1 1.0.0.1"
 # If the SSH service is not equal to none
-if [ "$SSH" != "none" ]; then
-    # Use the default openntpd
-    NTP="openssh"
-fi
-
+[ "$SSH" != "none" ] && NTP="openssh"
 # If the NTP service is not equal to none
-if [ "$NTP" != "none" ]; then
-    # Use the default openntpd
-    NTP="openntpd"
-fi
-
+[ "$NTP" != "none" ] && NTP="openntpd"
 # If the disk options variable is not present
-if [ -z "$DISK_OPTS" ]; then
-    # Set the DNS servers to cloudflare default
-    DNS_OPTS="-m sys /dev/sda"
-fi
+[ -z "$DISK_OPTS" ] && DNS_OPTS="-m sys /dev/sda"
 
 # Set the answer file name
 answerFile="/tmp/answers.cfg"
@@ -200,13 +157,6 @@ __EOF__
 # Set up alpine linux with the above configuration
 yes | setup-alpine -e -f "$answerFile"
 
-# Set the path for post setup-alpine boot script
-bootScript="/etc/local.d/post-setup-alpine.start"
-# Create the post setup-alpine boot script
-touch "$bootScript" || file_err "$bootScript"
-cat > "$bootScript" <<-__EOF__
-#!/bin/sh
-
 # Remove the comment from community url
 sed 's/^#//g' /etc/apk/repositories > /etc/apk/sed-parse
 # Move the above output file to overwrite the original
@@ -223,16 +173,10 @@ apk upgrade --available
 
 # Get the processor architecture
 ARCH="$(uname -m)"
-
 # If AMD processor is utilized, install CPU microcode
-if [ "\$ARCH" = "x86_64" ]; then
-    apk add amd-ucode
-fi
-
+[ "$ARCH" = "x86_64" ] && apk add amd-ucode
 # If Intel processor is utilized, install CPU microcode
-if [ "\$ARCH" = "i386" ]; then
-    apk add intel-ucode
-fi
+[ "$ARCH" = "i386" ] && apk add intel-ucode
 
 # Install ufw and needed packages
 apk add ip6tables logrotate ufw
@@ -240,9 +184,9 @@ apk add ip6tables logrotate ufw
 ufw default deny incoming
 ufw default deny outgoing
 # Open SSH port and limit connection attempts if not none
-[ "$SSH" != "none" ] && echo "uft limit SSH"
+[ "$SSH" != "none" ] && ufw limit SSH
 # Allow outgoing NTP if not none
-[ "$NTP" != "none" ] && echo "ufw allow out 123/udp"
+[ "$NTP" != "none" ] && ufw allow out 123/udp
 # Configure outgoing HTTP and DNS for apk to work
 ufw allow out DNS
 ufw allow out 80/tcp
@@ -255,7 +199,7 @@ if [ -n "$PACKAGES" ]; then
     # Iterate through space separated packages string
     for element in $PACKAGES; do
         # Install current package in string
-        apk add "\$element"
+        apk add "$element"
     done
 fi
 
@@ -298,7 +242,7 @@ auditRuleFile=/etc/audit/rules.d/audit.rules
     printf "%s\n" "-w /etc/passwd -p wa -k passwd_changes"
     printf "%s\n" "-w /etc/shadow -p wa -k shadow_changes"
     printf "%s\n" "-w /etc/group -p wa -k group_changes"
-} >> "\$auditRuleFile"
+} >> "$auditRuleFile"
 
 # Disable unused file systems
 filesysDisableFile=/etc/modprobe.d/disable-filesystems.conf
@@ -311,7 +255,7 @@ filesysDisableFile=/etc/modprobe.d/disable-filesystems.conf
     printf "%s\n" "install squashfs /bin/true"
     printf "%s\n" "install udf /bin/true"
     printf "%s\n" "install vfat /bin/true"
-} >> "\$filesysDisableFile"
+} >> "$filesysDisableFile"
 
 # Tune kernel parameters
 kernelFile=/etc/sysctl.conf
@@ -327,19 +271,9 @@ kernelFile=/etc/sysctl.conf
     printf "%s\n" "net.ipv4.tcp_syncookies = 1"
     printf "%s\n" "net.ipv4.conf.all.send_redirects = 0"
     printf "%s\n" "net.ipv4.conf.default.send_redirects = 0"
-} >> \$kernelFile
+} >> $kernelFile
 
-# Overwwrite executed script with random data 100,000 times and delete
-shred -zu -n 100000 "\$(readlink -f "\$0")"
-# Reboot the system again to ensure kernel related config are in effect
-reboot
-__EOF__
-
-# Set the boot scripts permissions to executable
-chmod +x $bootScript
-# Update rc service to execute local scripts on boot
-rc-update add local
 # Delete the original script after local boot script is set
-rm -f "$(readlink -f "$0")"
+shred -zu -n 100000 "$(readlink -f "$0")"
 # Reboot system which will trigger post setup script
 reboot

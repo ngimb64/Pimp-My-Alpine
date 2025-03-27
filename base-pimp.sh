@@ -35,16 +35,10 @@ apk upgrade --available
 
 # Get the processor architecture
 ARCH="$(uname -m)"
-
 # If AMD processor is utilized, install CPU microcode
-if [ "$ARCH" = "x86_64" ]; then
-    apk add amd-ucode
-fi
-
+[ "$ARCH" = "x86_64" ] && apk add amd-ucode
 # If Intel processor is utilized, install CPU microcode
-if [ "$ARCH" = "i386" ]; then
-    apk add intel-ucode
-fi
+[ "$ARCH" = "i386" ] && apk add intel-ucode
 
 # Install ufw and needed packages
 apk add ip6tables logrotate ufw
@@ -52,9 +46,9 @@ apk add ip6tables logrotate ufw
 ufw default deny incoming
 ufw default deny outgoing
 # Open SSH port and limit connection attempts if not none
-[ "$SSH" != "none" ] && echo "uft limit SSH"
+[ "$SSH" != "none" ] && ufw limit SSH
 # Allow outgoing NTP if not none
-[ "$NTP" != "none" ] && echo "ufw allow out 123/udp"
+[ "$NTP" != "none" ] && ufw allow out 123/udp
 # Configure outgoing HTTP and DNS for apk to work
 ufw allow out DNS
 ufw allow out 80/tcp
