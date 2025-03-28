@@ -1,0 +1,14 @@
+version: "3.8"
+
+services:
+  alpine-setup:
+    image: alpine-hardened:latest   # This can be the image built with Packer or Dockerfile
+    build:                          # Optional: only if you want Compose to build your custom Docker image using the Dockerfile
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      HARDENING_LEVEL: "high"
+      EXTRA_PACKAGES: "vim,htop"
+    volumes:
+      - ../scripts:/scripts         # Mount the scripts directory (adjust the path if needed)
+    command: sh /scripts/setup.sh
