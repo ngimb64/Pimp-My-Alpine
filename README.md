@@ -36,6 +36,7 @@
 ## Installation
 
 Overall the script has little dependencies, with the exception of using wireless connections where no wired is available which requires the Alpine Extended ISO is used to ensure that locally cached packages are available to be able to make a wireless connection. If HashiCorp Packer or Vagrant are used for deployment the below links are all that is needed to get everything installed:
+
 - https://developer.hashicorp.com/packer/tutorials/docker-get-started/get-started-install-cli
 	- https://chocolatey.org/install
 <br>
@@ -67,9 +68,9 @@ The usage depends on how the script intends on being used:
 
 ## Environment Variables
 
-### base-pimp.sh:
+### base-pimp
 
-Environment variables required for proper execution
+Environment variables required for proper execution:
 
 - ADMIN:  The name of the admin user to create
 - ADMIN_PASS:  The password of the admin user
@@ -86,9 +87,9 @@ Environment variables to export for customization (optional):
 			 `export PACKAGES="package1 package2 package3"`
 
 
-### extended-pimp.sh
+### extended-pimp
 
-Environment variables required for proper execution
+Environment variables required for proper execution:
 
 - ADMIN:  The name of the admin user to create
 - ADMIN_PASS:  The password of the admin user
@@ -106,6 +107,25 @@ Environment variables to export for customization (optional):
 - NTP:  The NTP service setting, if not set to none the default openntpd is used
 - DISK_OPTS:  The disk options, if not set the disk type is system at /dev/sda, disk type can be changed to data like `export DISK_OPTS="-m data /dev/sda2"`
 - PACKAGES:  The list of packages to be installed after initial setup, supports multiple packages as a space separated string like `export PACKAGES="package1 package2 package3"`
+<br>
+
+### Packer Templates (includes variables from extended pimp script)
+
+#### alpine-aws
+
+Environment variables required for proper execution:
+
+- AMI_NAME:  The name of the Amazon Machine Image to build
+- AWS_ACCESS_KEY:  The AWS API access key
+- AWS_SECRET_KEY:  The AWS API secret key
+- AWS_REGION:  The AWS region where EC2 will be provisioned
+- AWS_INSTANCE_TYPE:  The type of EC2 instance to be utilized
+
+
+Environment variables to export for customization (optional):
+
+- AWS_SUBNET_ID:
+- AWS_SECURITY_GROUP_ID:
 <br>
 
 

@@ -5,7 +5,7 @@
 #       When it is time to re-enable history use `rm -f ~/.ash_history`, keep in mind the
 #       command deletes the original history so make a copy if retaining it is desired.
 
-# Environment variabless required for proper execution
+# Environment variabless required for proper execution:
 #   - ADMIN:  The name of the admin user to create
 #   - ADMIN_PASS:  The password of the admin user
 #   - USER:  The name of the user to create
@@ -135,7 +135,7 @@ kernelFile=/etc/sysctl.conf
     printf "%s\n" "net.ipv4.conf.default.send_redirects = 0"
 } >> $kernelFile
 
-# Overwwrite executed script with random data 100,000 times and delete
+# Overwrite caller script with random data 100,000 times then delete
 shred -zu -n 100000 "$(readlink -f "$0")"
 # Reboot the system again to ensure kernel related config are in effect
 reboot
