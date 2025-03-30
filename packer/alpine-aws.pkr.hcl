@@ -1,16 +1,35 @@
-# Required and Optional Environment Variables
 variable "required_vars" {
   description = "List of required environment variables"
   type        = list(string)
-  default     = ["AWS_ACCESS_KEY", "AWS_SECRET_KEY", "AWS_REGION", "AWS_INSTANCE_TYPE",
-                 "AMI_NAME", "ADMIN", "ADMIN_PASS", "USER", "USER_PASS", "ROOT_PASS"]
+  default     = [
+    "AWS_ACCESS_KEY",
+    "AWS_SECRET_KEY",
+    "AWS_REGION",
+    "AWS_INSTANCE_TYPE",
+    "AMI_NAME",
+    "ADMIN",
+    "ADMIN_PASS",
+    "USER",
+    "USER_PASS",
+    "ROOT_PASS"
+  ]
 }
 
 variable "optional_vars" {
   description = "List of optional environment variables"
   type        = list(string)
-  default     = ["SSID", "WIFI_PASS", "HOSTNAME", "DNS_OPTS", "SSH", "NTP", "DISK_OPTS",
-                 "PACKAGES", "AWS_SUBNET_ID", "AWS_SECURITY_GROUP_ID",]
+  default     = [
+    "SSID",
+    "WIFI_PASS",
+    "HOSTNAME",
+    "DNS_OPTS",
+    "SSH",
+    "NTP",
+    "DISK_OPTS",
+    "PACKAGES",
+    "AWS_SUBNET_ID",
+    "AWS_SECURITY_GROUP_ID"
+  ]
 }
 
 locals {
@@ -46,7 +65,7 @@ builder "amazon-instance" {
   }
 }
 
-# Upload the setup script
+# Upload the pimp script
 provisioner "file" {
   source      = "scripts/extended-pimp.sh"
   destination = "/tmp"

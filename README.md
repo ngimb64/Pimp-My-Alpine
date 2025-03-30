@@ -115,12 +115,11 @@ Environment variables to export for customization (optional):
 
 Environment variables required for proper execution:
 
-- AMI_NAME:  The name of the Amazon Machine Image to build
 - AWS_ACCESS_KEY:  The AWS API access key
 - AWS_SECRET_KEY:  The AWS API secret key
 - AWS_REGION:  The AWS region where EC2 will be provisioned
 - AWS_INSTANCE_TYPE:  The type of EC2 instance to be utilized
-
+- AMI_NAME:  The name of the Amazon Machine Image to build
 
 Environment variables to export for customization (optional):
 
