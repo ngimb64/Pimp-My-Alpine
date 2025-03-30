@@ -1,14 +1,18 @@
-# Use the hardened image built with Packer, or base from Alpine and add custom steps.
+# Use Alpine base image
 FROM alpine:latest
 
-# Copy your hardening script if you want to run it during image build
-COPY ../scripts/harden_alpine.sh /usr/local/bin/harden_alpine.sh
-RUN chmod +x /usr/local/bin/harden_alpine.sh && \
-    /usr/local/bin/harden_alpine.sh
-
-# Set environment variables (if you want to bake them into the image)
+# Set default values for optional variables
 ENV HARDENING_LEVEL=high \
-    EXTRA_PACKAGES="vim,htop"
+    EXTRA_PACKAGES="vim htop" \
+    ADMIN="" \
+    ADMIN_PASS="" \
+    USER="" \
+    USER_PASS="" \
+    ROOT_PASS=""
 
-# Default command (can be overridden by docker-compose)
-CMD [ "sh", "/scripts/setup.sh" ]
+# Copy the hardening script into the container
+COPY scripts/extended-pimp.sh /tmp/extended-pimp.sh
+RUN chmod +x /tmp/extended-pimp.sh
+
+# Run the script with dynamically passed environment variables
+CMD ["/bin/sh", "-c", "/tmp/extended-pimp.sh"]

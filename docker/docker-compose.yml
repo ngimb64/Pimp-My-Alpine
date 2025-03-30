@@ -1,14 +1,21 @@
 version: "3.8"
 
 services:
-  alpine-setup:
-    image: alpine-hardened:latest   # This can be the image built with Packer or Dockerfile
-    build:                          # Optional: only if you want Compose to build your custom Docker image using the Dockerfile
+  alpine-pimp:
+    build:
       context: .
       dockerfile: Dockerfile
     environment:
-      HARDENING_LEVEL: "high"
-      EXTRA_PACKAGES: "vim,htop"
-    volumes:
-      - ../scripts:/scripts         # Mount the scripts directory (adjust the path if needed)
-    command: sh /scripts/setup.sh
+      # Required variables (MUST be set)
+      ADMIN: "${ADMIN:?Error: ADMIN is required}"
+      ADMIN_PASS: "${ADMIN_PASS:?Error: ADMIN_PASS is required}"
+      USER: "${USER:?Error: USER is required}"
+      USER_PASS: "${USER_PASS:?Error: USER_PASS is required}"
+      ROOT_PASS: "${ROOT_PASS:?Error: ROOT_PASS is required}"
+
+      # Optional variables (Can be empty)
+      HARDENING_LEVEL: "${HARDENING_LEVEL:-high}"
+      EXTRA_PACKAGES: "${EXTRA_PACKAGES:-vim htop}"
+    container_name: alpine-pimp
+    stdin_open: true
+    tty: true

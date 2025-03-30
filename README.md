@@ -63,6 +63,22 @@ The usage depends on how the script intends on being used:
 
 - extended-pimp.sh, is intended to either be physically transferred via USB or using deployment tools like Packer & Vagrant
 	- When using Packer & Vagrant, the environment variables need to be established in the Packer file to allow the provisoner to access them during execution instead of exporting them in shell
+	- For Packer templates alpine-iso and alpine-vagrant ensure the DISK_SIZE environment variable is set if a size other than 10240 default is desired
+		- Both these templates use the url and checksum for the standard ISO but are customizable variables like DISK_SIZE, here is how they would be set for the extended ISO instead of using the default standard
+			- `export ISO_URL=https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/x86_64/alpine-extended-3.21.3-x86_64.iso`
+			- `export ISO_CHECKSUM=4c72272d6fc4d67b884cf5568ebe42d7b59e186ae944873b39bf014ca46e1ce60379b560bebd7d7bc5bf250d6132ac6e91079a6b1b6a2d9ce788f34f35c87cc0`
+<br>
+
+
+**Note**:  to ensure the packer templates work properly, run `packer init` in the root folder to ensure provider plugins are installed
+
+- Packer templates all have the same approach and all of them us the environment variables from the extended pimp script
+	- The only exception is the alpine-aws template, whose additional environment variables can be found below
+<br>
+
+- After the command line history has been disabled export the environment variables that are required and optional if desired
+- Then simply build the template with `packer build <template_file>`
+	- For Vagrant box generation, the resulting box can be added with `vagrant box add <.box_file> --name <box_name>`
 <br>
 
 
@@ -108,6 +124,7 @@ Environment variables to export for customization (optional):
 - DISK_OPTS:  The disk options, if not set the disk type is system at /dev/sda, disk type can be changed to data like `export DISK_OPTS="-m data /dev/sda2"`
 - PACKAGES:  The list of packages to be installed after initial setup, supports multiple packages as a space separated string like `export PACKAGES="package1 package2 package3"`
 <br>
+
 
 ### Packer Templates (includes variables from extended pimp script)
 
