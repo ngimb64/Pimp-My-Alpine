@@ -47,7 +47,51 @@ Overall the script has little dependencies, with the exception of using wireless
 
 ## Usage
 
-**Note**: before exporting environment variables in the terminal, command line history should be temporary disabled with `rm ~/.ash_history && ln -s /dev/null ~/.ash_history`. When it is time to re-enable history use `rm -f ~/.ash_history`, keep in mind the command deletes the original history so make a copy if retaining it is desired.
+It is highly recommended to disable command line history to prevent sensitive information exposure, below are examples where applicable with steps how re-enable command line history prior to project usage.
+
+Linux disable command line history:
+```
+rm ~/.ash_history && ln -s /dev/null ~/.ash_history
+```
+**Note**:  keep in mind the above command deletes the original history so make a copy if retaining it is desired
+
+Linux enable command line history:
+```
+rm -f ~/.ash_history
+```
+<br>
+
+Windows PowerShell disable saving command line history to log:
+```
+Set-PSReadlineOption -HistorySaveStyle SaveNothing
+```
+**Note**:  with PowerShell the command history can be re-enabled but will save all the commands executed in the session, therefore it is best to exit and open a new shell instead
+<br>
+
+Packer and Vagrant support Linux and Windows systems, so below is how to set environment variables on both systems (though the examples are all Linux)
+
+Setting environment variable in Linux:
+```
+export PKR_VAR_<name>=<value>
+```
+
+Setting environment variable in Windows Command Prompt:
+```
+set PKR_VAR_<name>=<value>
+```
+
+Setting environment variable in PowerShell:
+```
+$env:PKR_VAR_<name>=<value>
+```
+<br>
+
+The other option is using the `-var` flag for each variable when using the build and validate commands in packer:
+```
+packer build -var "TEST=test1" -var "TEST=test2"
+```
+<br>
+
 
 The usage depends on how the script intends on being used:
 
@@ -63,18 +107,17 @@ The usage depends on how the script intends on being used:
 
 - extended-pimp.sh, is intended to either be physically transferred via USB or using deployment tools like Packer & Vagrant
 	- When using Packer & Vagrant, the environment variables need to be established in the Packer file to allow the provisoner to access them during execution instead of exporting them in shell
+		- Packer templates all have the same approach and all of them use the environment variables from the extended pimp script
+		- The only exception is the alpine-aws template, whose additional environment variables can be found below
+		- It is recommended to run the packer templates from the root folder of the project to prevent file path issues
+	<br>
+
 	- For Packer templates alpine-iso and alpine-vagrant ensure the DISK_SIZE environment variable is set if a size other than 10240 default is desired
 		- Both these templates use the url and checksum for the standard ISO but are customizable variables like DISK_SIZE, here is how they would be set for the extended ISO instead of using the default standard
 			- `export ISO_URL=https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/x86_64/alpine-extended-3.21.3-x86_64.iso`
 			- `export ISO_CHECKSUM=4c72272d6fc4d67b884cf5568ebe42d7b59e186ae944873b39bf014ca46e1ce60379b560bebd7d7bc5bf250d6132ac6e91079a6b1b6a2d9ce788f34f35c87cc0`
-<br>
 
-
-**Note**:  to ensure the packer templates work properly, run `packer init` in the root folder to ensure provider plugins are installed
-
-- Packer templates all have the same approach and all of them us the environment variables from the extended pimp script
-	- The only exception is the alpine-aws template, whose additional environment variables can be found below
-<br>
+**Note**:  to ensure the packer templates work properly, run `packer init packer.pkr.hcl` in the root folder to ensure provider plugins are installed
 
 - After the command line history has been disabled export the environment variables that are required and optional if desired
 - Then simply build the template with `packer build <template_file>`

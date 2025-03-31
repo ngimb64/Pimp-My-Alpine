@@ -1,10 +1,5 @@
 #!/bin/sh
 
-# Note: before exporting environment variables in the terminal, command line history
-#       should be temporary disabled with `rm ~/.ash_history && ln -s /dev/null ~/.ash_history`.
-#       When it is time to re-enable history use `rm -f ~/.ash_history`, keep in mind the
-#       command deletes the original history so make a copy if retaining it is desired.
-
 # Environment variabless required for proper execution:
 #   - ADMIN:  The name of the admin user to create
 #   - ADMIN_PASS:  The password of the admin user
@@ -41,7 +36,7 @@ ARCH="$(uname -m)"
 [ "$ARCH" = "i386" ] && apk add intel-ucode
 
 # Install ufw and needed packages
-apk add ip6tables logrotate ufw
+apk add --no-cache ip6tables logrotate ufw rsyslog
 # Deny all incoming and outgoing traffic by default
 ufw default deny incoming
 ufw default deny outgoing
@@ -94,8 +89,6 @@ chmod 700 /root
 chmod 600 /boot/grub/grub.cfg
 chmod 600 /etc/ssh/sshd_config
 
-# Add needed packages for audit logging
-apk add audit rsyslog
 # Ensure the proper dir exists for audit rules
 mkdir -p /etc/audit/rules.d
 # Add rules to audit rule file
@@ -137,5 +130,5 @@ kernelFile=/etc/sysctl.conf
 
 # Overwrite caller script with random data 100,000 times then delete
 shred -zu -n 100000 "$(readlink -f "$0")"
-# Reboot the system again to ensure kernel related config are in effect
+# Reboot system which will trigger post setup script
 reboot

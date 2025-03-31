@@ -1,52 +1,149 @@
-variable "required_vars" {
-  description = "List of required environment variables"
-  type        = list(string)
-  default     = [
-    "AWS_ACCESS_KEY",
-    "AWS_SECRET_KEY",
-    "AWS_REGION",
-    "AWS_INSTANCE_TYPE",
-    "AMI_NAME",
-    "ADMIN",
-    "ADMIN_PASS",
-    "USER",
-    "USER_PASS",
-    "ROOT_PASS"
-  ]
+# Required variables section
+variable "ADMIN" {
+  description = "Admin username"
+  type        = string
 }
 
-variable "optional_vars" {
-  description = "List of optional environment variables"
-  type        = list(string)
-  default     = [
-    "SSID",
-    "WIFI_PASS",
-    "HOSTNAME",
-    "DNS_OPTS",
-    "SSH",
-    "NTP",
-    "DISK_OPTS",
-    "PACKAGES",
-    "AWS_SUBNET_ID",
-    "AWS_SECURITY_GROUP_ID"
-  ]
+variable "ADMIN_PASS" {
+  description = "Admin password"
+  type        = string
+  sensitive   = true
+}
+
+variable "USER" {
+  description = "User username"
+  type        = string
+}
+
+variable "USER_PASS" {
+  description = "User password"
+  type        = string
+  sensitive   = true
+}
+
+variable "ROOT_PASS" {
+  description = "Root password"
+  type        = string
+  sensitive   = true
+}
+
+# Optional variables section
+variable "SSID" {
+  description = "Optional SSID"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "WIFI_PASS" {
+  description = "Optional WIFI password"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "HOSTNAME" {
+  description = "Optional hostname"
+  type        = string
+  default     = ""
+}
+
+variable "DNS_OPTS" {
+  description = "Optional DNS options"
+  type        = string
+  default     = ""
+}
+
+variable "SSH" {
+  description = "Optional SSH config"
+  type        = string
+  default     = "openssh"
+}
+
+variable "NTP" {
+  description = "Optional NTP settings"
+  type        = string
+  default     = "openntpd"
+}
+
+variable "DISK_OPTS" {
+  description = "Optional disk options"
+  type        = string
+  default     = ""
+}
+
+variable "PACKAGES" {
+  description = "Optional packages to install"
+  type        = string
+  default     = ""
+}
+
+# AWS variables section
+variable "AWS_ACCESS_KEY" {
+    description = "AWS Access Key"
+    type        = string
+    sensitive   = true
+}
+
+variable "AWS_SECRET_KEY" {
+    description = "AWS Secret Key"
+    type        = string
+    sensitive   = true
+}
+
+variable "AWS_REGION" {
+    description = "AWS Region"
+    type        = string
+}
+
+variable "AWS_INSTANCE_TYPE" {
+    description = "AWS Instance Type"
+    type        = string
+}
+
+variable "AWS_SUBNET_ID" {
+    description = "AWS Subnet ID"
+    type        = string
+    default     = null
+}
+
+variable "AWS_SECURITY_GROUP_ID" {
+    description = "AWS Security Group ID"
+    type        = string
+    default     = null
+}
+
+variable "AMI_NAME" {
+    description = "AWS Instance Type"
+    type        = string
+    default     = "alpine-pimp"
 }
 
 locals {
-  # Convert required & optional variables into environment variable assignment format
-  env_vars_list = concat(
-    [for var_name in var.required_vars : "${var_name}=${env(var_name)}"],
-    [for var_name in var.optional_vars : "${var_name}=${env(var_name)}" if env(var_name) != ""]
-  )
+  env_vars_list = [
+    "ADMIN=${var.ADMIN}",
+    "ADMIN_PASS=${var.ADMIN_PASS}",
+    "USER=${var.USER}",
+    "USER_PASS=${var.USER_PASS}",
+    "ROOT_PASS=${var.ROOT_PASS}",
+    "SSID=${var.SSID}",
+    "WIFI_PASS=${var.WIFI_PASS}",
+    "HOSTNAME=${var.HOSTNAME}",
+    "DNS_OPTS=${var.DNS_OPTS}",
+    "SSH=${var.SSH}",
+    "NTP=${var.NTP}",
+    "DISK_OPTS=${var.DISK_OPTS}",
+    "PACKAGES=${var.PACKAGES}",
+  ]
 }
 
 builder "amazon-instance" {
-  access_key        = env("AWS_ACCESS_KEY")
-  secret_key        = env("AWS_SECRET_KEY")
-  region            = env("AWS_REGION")
-  instance_type     = env("AWS_INSTANCE_TYPE")
-  subnet_id         = env("AWS_SUBNET_ID")
-  security_group_id = env("AWS_SECURITY_GROUP_ID")
+  access_key        = var.AWS_ACCESS_KEY
+  secret_key        = var.AWS_SECRET_KEY
+  region            = var.AWS_REGION
+  instance_type     = var.AWS_INSTANCE_TYPE
+  subnet_id         = lookup(var, "AWS_SUBNET_ID", null)
+  security_group_id = lookup(var, "AWS_SECURITY_GROUP_ID", null)
   ami_name          = "alpine-image-${timestamp()}"
   ssh_username      = "root"
 
@@ -61,18 +158,18 @@ builder "amazon-instance" {
   }
 
   tags {
-    Name = "${env("AMI_NAME")}-AMI-Latest"
+    Name = "${var.AMI_NAME}-AMI-Latest"
   }
 }
 
 # Upload the pimp script
 provisioner "file" {
   source      = "scripts/extended-pimp.sh"
-  destination = "/tmp"
+  destination = "/opt/extended-pimp.sh"
 }
 
 # Run script with dynamically parsed environment variables
 provisioner "shell" {
-  script           = "/tmp/extended-pimp.sh"
+  script           = "/opt/extended-pimp.sh"
   environment_vars = local.env_vars_list
 }

@@ -1,37 +1,99 @@
-# Required and Optional Environment Variables
-variable "required_vars" {
-  description = "List of required environment variables for VirtualBox ISO build"
-  type        = list(string)
-  default     = [
-    "ADMIN",
-    "ADMIN_PASS",
-    "USER",
-    "USER_PASS",
-    "ROOT_PASS"
-  ]
+# Required variables section
+variable "ADMIN" {
+  description = "Admin username"
+  type        = string
 }
 
-variable "optional_vars" {
-  description = "List of optional environment variables for VirtualBox ISO build"
-  type        = list(string)
-  default     = [
-    "SSID",
-    "WIFI_PASS",
-    "HOSTNAME",
-    "DNS_OPTS",
-    "SSH",
-    "NTP",
-    "DISK_OPTS",
-    "PACKAGES"
-  ]
+variable "ADMIN_PASS" {
+  description = "Admin password"
+  type        = string
+  sensitive   = true
+}
+
+variable "USER" {
+  description = "User username"
+  type        = string
+}
+
+variable "USER_PASS" {
+  description = "User password"
+  type        = string
+  sensitive   = true
+}
+
+variable "ROOT_PASS" {
+  description = "Root password"
+  type        = string
+  sensitive   = true
+}
+
+# Optional variables section
+variable "SSID" {
+  description = "Optional SSID"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "WIFI_PASS" {
+  description = "Optional WIFI password"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "HOSTNAME" {
+  description = "Optional hostname"
+  type        = string
+  default     = ""
+}
+
+variable "DNS_OPTS" {
+  description = "Optional DNS options"
+  type        = string
+  default     = ""
+}
+
+variable "SSH" {
+  description = "Optional SSH config"
+  type        = string
+  default     = "openssh"
+}
+
+variable "NTP" {
+  description = "Optional NTP settings"
+  type        = string
+  default     = "openntpd"
+}
+
+variable "DISK_OPTS" {
+  description = "Optional disk options"
+  type        = string
+  default     = ""
+}
+
+variable "PACKAGES" {
+  description = "Optional packages to install"
+  type        = string
+  default     = ""
 }
 
 locals {
-  # Create a list of assignments in the format VAR=value
-  env_vars_list = concat(
-    [for var_name in var.required_vars : "${var_name}=${env(var_name)}"],
-    [for var_name in var.optional_vars : "${var_name}=${env(var_name)}" if env(var_name) != ""]
-  )
+  env_vars_list = [
+    "ADMIN=${var.ADMIN}",
+    "ADMIN_PASS=${var.ADMIN_PASS}",
+    "USER=${var.USER}",
+    "USER_PASS=${var.USER_PASS}",
+    "ROOT_PASS=${var.ROOT_PASS}",
+    "SSID=${var.SSID}",
+    "WIFI_PASS=${var.WIFI_PASS}",
+    "HOSTNAME=${var.HOSTNAME}",
+    "DNS_OPTS=${var.DNS_OPTS}",
+    "SSH=${var.SSH}",
+    "NTP=${var.NTP}",
+    "DISK_OPTS=${var.DISK_OPTS}",
+    "PACKAGES=${var.PACKAGES}",
+  ]
 }
 
 # ISO-specific variables
@@ -72,11 +134,11 @@ builder "virtualbox-iso" "alpine_iso" {
 # Upload the pimp script
 provisioner "file" {
   source      = "scripts/extended-pimp.sh"
-  destination = "/tmp"
+  destination = "/opt/extended-pimp.sh"
 }
 
 # Run script with dynamically parsed environment variables
 provisioner "shell" {
-  script           = "/tmp/extended-pimp.sh"
+  script           = "/opt/extended-pimp.sh"
   environment_vars = local.env_vars_list
 }
