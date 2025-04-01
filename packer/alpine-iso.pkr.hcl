@@ -92,53 +92,58 @@ locals {
     "SSH=${var.SSH}",
     "NTP=${var.NTP}",
     "DISK_OPTS=${var.DISK_OPTS}",
-    "PACKAGES=${var.PACKAGES}",
+    "PACKAGES=${var.PACKAGES}"
   ]
 }
 
 # ISO-specific variables
-variable "iso_url" {
+variable "ISO_URL" {
   description = "URL to the Alpine Linux ISO"
   type        = string
   default     = "https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/x86_64/alpine-standard-3.21.3-x86_64.iso"
 }
 
-variable "iso_checksum" {
+variable "ISO_CHECKSUM" {
   description = "Checksum for the Alpine Linux ISO"
   type        = string
   default     = "sha512:7f06d99e9c212bad281e6dd1e628f582c446d912d4711f3d8a6cbccc18834d3d0d40dd8ca9eda82bff41bde616c8b9fcc23d47a4a56dc12863c5681d69578495"
 }
 
-variable "disk_size" {
-  description = "Disk size for the virtual machine"
+variable "DISK_SIZE" {
+  description = "Disk size for the virtual machine (40GB default)"
   type        = number
-  default     = 10240
+  default     = 40000
 }
 
-builder "virtualbox-iso" "alpine_iso" {
-  iso_url      = var.iso_url
-  iso_checksum = var.iso_checksum
-
+source "virtualbox-iso" "alpine-pimp-iso" {
+  iso_url          = var.ISO_URL
+  iso_checksum     = var.ISO_CHECKSUM
   vm_name          = "alpine-pimp-iso"
-  shutdown_command = "echo 'powered off'"
-  communicator     = "none"
-  disk_size        = var.disk_size
-  headless         = true
+  ssh_username     = "root"
+  shutdown_command = "echo 'packer' | sudo -S shutdown -P now"
+  disk_size        = var.DISK_SIZE
+  headless         = false
 
-  boot_wait    = "10s"
+  boot_wait = "10s"
   boot_command = [
     "<wait5><enter>"
   ]
 }
 
-# Upload the pimp script
-provisioner "file" {
-  source      = "scripts/extended-pimp.sh"
-  destination = "/opt/extended-pimp.sh"
-}
+build {
+  sources = ["sources.virtualbox-iso.alpine-pimp-iso"]
 
-# Run script with dynamically parsed environment variables
-provisioner "shell" {
-  script           = "/opt/extended-pimp.sh"
-  environment_vars = local.env_vars_list
+  # Upload the pimp script
+  provisioner "file" {
+    source      = "scripts/extended-pimp.sh"
+    destination = "/opt/extended-pimp.sh"
+  }
+
+  # Run script with dynamically parsed environment variables
+  provisioner "shell" {
+    environment_vars = local.env_vars_list
+    inline = [
+      "sh /opt/extended-pimp.sh"
+    ]
+  }
 }

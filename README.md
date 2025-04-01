@@ -47,7 +47,7 @@ Overall the script has little dependencies, with the exception of using wireless
 
 ## Usage
 
-It is highly recommended to disable command line history to prevent sensitive information exposure, below are examples where applicable with steps how re-enable command line history prior to project usage.
+It is highly recommended to disable command line history to prevent sensitive information exposure, below are examples where applicable with steps how re-enable command line history prior to project usage. For Windows, Command Prompt does not save command line history to disk (only retained in memory during session), making it the ideal shell to use these scripts.
 
 Linux disable command line history:
 ```
@@ -90,6 +90,7 @@ The other option is using the `-var` flag for each variable when using the build
 ```
 packer build -var "TEST=test1" -var "TEST=test2"
 ```
+I find this to be the better option because I can template out the entire command with environment variables leaving commonly used values and redacting any sensitive information so it can be stored on disk for later use.
 <br>
 
 
@@ -112,7 +113,7 @@ The usage depends on how the script intends on being used:
 		- It is recommended to run the packer templates from the root folder of the project to prevent file path issues
 	<br>
 
-	- For Packer templates alpine-iso and alpine-vagrant ensure the DISK_SIZE environment variable is set if a size other than 10240 default is desired
+	- For Packer templates alpine-iso and alpine-vagrant ensure the DISK_SIZE environment variable is set if a size other than 40000 (around 40GB) default is desired
 		- Both these templates use the url and checksum for the standard ISO but are customizable variables like DISK_SIZE, here is how they would be set for the extended ISO instead of using the default standard
 			- `export ISO_URL=https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/x86_64/alpine-extended-3.21.3-x86_64.iso`
 			- `export ISO_CHECKSUM=4c72272d6fc4d67b884cf5568ebe42d7b59e186ae944873b39bf014ca46e1ce60379b560bebd7d7bc5bf250d6132ac6e91079a6b1b6a2d9ce788f34f35c87cc0`
@@ -175,14 +176,18 @@ Environment variables to export for customization (optional):
 
 Environment variables required for proper execution:
 
+- AWS_ACCOUNT_ID:  The AWS account ID number
+- S3_BUCKET:  The AWS S3 bucket where the resulting AMI will be stored
+- X509_CERT_PATH:  The path to the x509 certificate used in bundling
+- X509_KEY_PATH:  The path to the x509 key used in bundling
 - AWS_ACCESS_KEY:  The AWS API access key
 - AWS_SECRET_KEY:  The AWS API secret key
 - AWS_REGION:  The AWS region where EC2 will be provisioned
 - AWS_INSTANCE_TYPE:  The type of EC2 instance to be utilized
-- AMI_NAME:  The name of the Amazon Machine Image to build
 
 Environment variables to export for customization (optional):
 
+- AMI_NAME:  The name of the Amazon Machine Image to build
 - AWS_SUBNET_ID:
 - AWS_SECURITY_GROUP_ID:
 <br>

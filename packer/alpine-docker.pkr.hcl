@@ -92,7 +92,7 @@ locals {
     "SSH=${var.SSH}",
     "NTP=${var.NTP}",
     "DISK_OPTS=${var.DISK_OPTS}",
-    "PACKAGES=${var.PACKAGES}",
+    "PACKAGES=${var.PACKAGES}"
   ]
 }
 
@@ -108,7 +108,7 @@ source "docker" "alpine" {
 }
 
 build {
-  name = "alpine-pimptainer"
+  name = "alpine-pimptainer-build"
   sources = [
     "source.docker.alpine"
   ]
@@ -129,8 +129,8 @@ build {
 
   # Tag the image as latest
   post-processor "docker-tag" {
-    repository = "hashicorp/packer"
-    tags = [
+    repository = "alpine-pimptainer"
+    tags       = [
       "latest"
     ]
   }

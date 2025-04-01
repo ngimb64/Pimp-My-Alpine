@@ -29,7 +29,7 @@ variable "ROOT_PASS" {
 
 # Optional variables section
 variable "SSID" {
-  description = "Optional SSID"
+  description = "Optional WIFI SSID"
   type        = string
   default     = ""
   sensitive   = true
@@ -73,50 +73,72 @@ variable "DISK_OPTS" {
 }
 
 variable "PACKAGES" {
-  description = "Optional packages to install"
+  description = "Optional packages to install at end of installation"
   type        = string
   default     = ""
 }
 
-# AWS variables section
+# AWS required variables section
+variable "AWS_ACCOUNT_ID" {
+  description = "AWS account ID"
+  type        = string
+  sensitive   = true
+}
+
+variable "S3_BUCKET" {
+  description = "AWS S3 bucket where AMIs are stored"
+  type        = string
+}
+
+variable "X509_CERT_PATH" {
+  description = "Path to valid x509 certificate for AWS account"
+  type        = string
+}
+
+variable "X509_KEY_PATH" {
+  description = "Path to valid x509 private key for AWS account"
+  type        = string
+}
+
 variable "AWS_ACCESS_KEY" {
-    description = "AWS Access Key"
-    type        = string
-    sensitive   = true
+  description = "AWS access key"
+  type        = string
+  sensitive   = true
 }
 
 variable "AWS_SECRET_KEY" {
-    description = "AWS Secret Key"
-    type        = string
-    sensitive   = true
+  description = "AWS secret key"
+  type        = string
+  sensitive   = true
 }
 
 variable "AWS_REGION" {
-    description = "AWS Region"
-    type        = string
+  description = "AWS region"
+  type        = string
 }
 
 variable "AWS_INSTANCE_TYPE" {
-    description = "AWS Instance Type"
-    type        = string
+  description = "AWS instance type"
+  type        = string
+}
+
+# AWS optional variables section
+variable "AMI_NAME" {
+  description = "AWS instance type"
+  type        = string
+  default     = "alpine-pimp"
 }
 
 variable "AWS_SUBNET_ID" {
-    description = "AWS Subnet ID"
-    type        = string
-    default     = null
+  description = "AWS Subnet ID"
+  type        = string
+  default     = null
 }
 
 variable "AWS_SECURITY_GROUP_ID" {
-    description = "AWS Security Group ID"
-    type        = string
-    default     = null
-}
-
-variable "AMI_NAME" {
-    description = "AWS Instance Type"
-    type        = string
-    default     = "alpine-pimp"
+  description = "AWS Security Group ID"
+  type        = string
+  default     = null
 }
 
 locals {
@@ -133,43 +155,52 @@ locals {
     "SSH=${var.SSH}",
     "NTP=${var.NTP}",
     "DISK_OPTS=${var.DISK_OPTS}",
-    "PACKAGES=${var.PACKAGES}",
+    "PACKAGES=${var.PACKAGES}"
   ]
 }
 
-builder "amazon-instance" {
+data "amazon-ami" "alpine-base" {
+  filters = {
+    virtualization-type = "hvm"
+    name                = "*alpine-ami-3.18-x86_64*"
+    root-device-type    = "instance-store"
+  }
+  owners      = ["951157211495"]
+  most_recent = true
+  region      = var.AWS_REGION
+}
+
+source "amazon-instance" "alpine-pimp-ami" {
+  account_id        = var.AWS_ACCOUNT_ID
+  s3_bucket         = var.S3_BUCKET
+  x509_cert_path    = var.X509_CERT_PATH
+  x509_key_path     = var.X509_KEY_PATH
+  ami_name          = "${var.AMI_NAME}-{{timestamp}}"
   access_key        = var.AWS_ACCESS_KEY
   secret_key        = var.AWS_SECRET_KEY
   region            = var.AWS_REGION
   instance_type     = var.AWS_INSTANCE_TYPE
-  subnet_id         = lookup(var, "AWS_SUBNET_ID", null)
-  security_group_id = lookup(var, "AWS_SECURITY_GROUP_ID", null)
-  ami_name          = "alpine-image-${timestamp()}"
+  source_ami        = data.amazon-ami.alpine-base.id
+  subnet_id         = lookup(var, "AWS_SUBNET_ID", "")
+  security_group_id = lookup(var, "AWS_SECURITY_GROUP_ID", "")
   ssh_username      = "root"
-
-  source_ami_filter {
-    filters = {
-      virtualization-type = "hvm"
-      name                = "*alpine-ami-3.18-x86_64*"
-      root-device-type    = "instance-store"
-    }
-    owners      = ["951157211495"]
-    most_recent = true
-  }
-
-  tags {
-    Name = "${var.AMI_NAME}-AMI-Latest"
-  }
+  communicator      = "ssh"
 }
 
-# Upload the pimp script
-provisioner "file" {
-  source      = "scripts/extended-pimp.sh"
-  destination = "/opt/extended-pimp.sh"
-}
+build {
+  sources = ["source.amazon-instance.alpine-pimp-ami"]
 
-# Run script with dynamically parsed environment variables
-provisioner "shell" {
-  script           = "/opt/extended-pimp.sh"
-  environment_vars = local.env_vars_list
+  # Upload the pimp script
+  provisioner "file" {
+    source      = "scripts/extended-pimp.sh"
+    destination = "/opt/extended-pimp.sh"
+  }
+
+  # Run script with dynamically parsed environment variables
+  provisioner "shell" {
+    environment_vars = local.env_vars_list
+    inline = [
+      "sh /opt/extended-pimp.sh"
+    ]
+  }
 }

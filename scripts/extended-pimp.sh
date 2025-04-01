@@ -89,11 +89,11 @@ rm -f ~/.ash_history && ln -s /dev/null ~/.ash_history
 # If the DNS servers variable is not present, set to CloudFlare default
 [ -z "$DNS_OPTS" ] && DNS_OPTS="1.1.1.1 1.0.0.1"
 # If the SSH service is not equal to none
-[ "$SSH" != "none" ] && NTP="openssh"
+[ "$SSH" != "none" ] && SSH="openssh"
 # If the NTP service is not equal to none
 [ "$NTP" != "none" ] && NTP="openntpd"
 # If the disk options variable is not present
-[ -z "$DISK_OPTS" ] && DNS_OPTS="-m sys /dev/sda"
+[ -z "$DISK_OPTS" ] && DISK_OPTS="-m sys /dev/sda"
 
 # Set the answer file name
 answerFile="/tmp/answers.cfg"
@@ -214,14 +214,9 @@ passwd -l root
 # Disable SSH root logins
 sed -i 's/^#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config
 
-# Generate RSA key for admin user
-mkdir -p "/home/$ADMIN/.ssh"
-ssh-keygen -t rsa -b 4096 -f "/home/$ADMIN/.ssh"
-chown "$ADMIN:$ADMIN" "/home/$ADMIN/.ssh" "/home/$ADMIN/.ssh/id_rsa" "/home/$ADMIN/.ssh/id_rsa.pub"
-
 # Generate RSA key for low privilege user
 mkdir -p "/home/$USER/.ssh"
-ssh-keygen -t rsa -b 4096 -f "/home/$USER/.ssh"
+yes "" | ssh-keygen -q -t rsa -b 4096 -f "/home/$USER/.ssh" -N ""
 chown "$USER:$USER" "/home/$USER/.ssh" "/home/$USER/.ssh/id_rsa" "/home/$USER/.ssh/id_rsa.pub"
 
 # Set appropriate permissions on critical directories
