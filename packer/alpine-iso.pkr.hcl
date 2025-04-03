@@ -94,7 +94,7 @@ variable "ISO_CHECKSUM" {
 variable "DISK_SIZE" {
   description = "Disk size for the virtual machine (10GB default)"
   type        = number
-  default     = 10000
+  default     = 10240
 }
 
 locals {
@@ -115,16 +115,16 @@ locals {
   ]
 }
 
-source "virtualbox-iso" "alpine-pimp-iso" {
-  guest_os_type        = "Linux26_64"
-  iso_url              = var.ISO_URL
-  iso_checksum         = var.ISO_CHECKSUM
-  ssh_username         = "root"
-  ssh_private_key_file = "./packer/tmp_alpine_key"
-  shutdown_command     = "poweroff"
-  vm_name              = "alpine-pimp-iso"
-  disk_size            = var.DISK_SIZE
-  headless             = false
+source "virtualbox-iso" "alpine-pimp-ova" {
+  guest_os_type    = "Linux26_64"
+  iso_url          = var.ISO_URL
+  iso_checksum     = var.ISO_CHECKSUM
+  ssh_username     = "root"
+  shutdown_command = "poweroff"
+  vm_name          = "alpine-pimp-ova"
+  disk_size        = var.DISK_SIZE
+  headless         = true
+  format           = "ova"
 
   boot_wait    = "15s"
   boot_command = [
@@ -143,7 +143,7 @@ source "virtualbox-iso" "alpine-pimp-iso" {
 }
 
 build {
-  sources = ["sources.virtualbox-iso.alpine-pimp-iso"]
+  sources = ["sources.virtualbox-iso.alpine-pimp-ova"]
 
   provisioner "file" {
     source      = "scripts/extended-pimp.sh"

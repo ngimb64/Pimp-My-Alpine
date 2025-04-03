@@ -107,7 +107,6 @@ The usage depends on how the script intends on being used:
 
 - extended-pimp.sh, is intended to either be physically transferred via USB or using deployment tools like Packer & Vagrant
 	- Packer templates all have the same approach and all of them use the environment variables from the extended pimp script
-	- Ensure to generate an SSH key so the provisioner can access the VM `ssh-keygen -t rsa -b 4096 -f ./packer/tmp_alpine_key -N ""`
 	- It is recommended to run the packer templates from the root folder of the project to prevent file path issues
 	- Both these templates use the URL and checksum for the standard ISO, here is how they would be set for the extended ISO instead of using the default standard
 		- `export ISO_URL=https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/x86_64/alpine-extended-3.21.3-x86_64.iso`

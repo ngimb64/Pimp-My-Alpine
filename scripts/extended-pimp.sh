@@ -88,10 +88,10 @@ rm -f ~/.ash_history && ln -s /dev/null ~/.ash_history
 [ -z "$HOSTNAME" ] && HOSTNAME="client-$(generate_random_string 6)"
 # If the DNS servers variable is not present, set to CloudFlare default
 [ -z "$DNS_OPTS" ] && DNS_OPTS="1.1.1.1 1.0.0.1"
-# If the SSH service is not equal to none
-[ "$SSH" != "none" ] && SSH="openssh"
-# If the NTP service is not equal to none
-[ "$NTP" != "none" ] && NTP="openntpd"
+# If the SSH service is not none or dropbear, set it to openssh default
+[ "$SSH" != "none" ] && [ "$SSH" != "dropbear" ] && SSH="openssh"
+# If the NTP service is not equal to none or busybox or openntpd, set it to crony default
+[ "$NTP" != "none" ] && [ "$NTP" != "busybox" ] && [ "$NTP" != "openntpd" ] && NTP="crony"
 # If the disk options variable is not present
 [ -z "$DISK_OPTS" ] && DISK_OPTS="-m sys /dev/sda"
 
@@ -176,7 +176,7 @@ ARCH="$(uname -m)"
 [ "$ARCH" = "i386" ] && apk add intel-ucode
 
 # Install ufw and needed packages
-apk add --no-cache ip6tables logrotate ufw rsyslog
+apk add --no-cache doas ip6tables logrotate ufw rsyslog sudo
 # Deny all incoming and outgoing traffic by default
 ufw default deny incoming
 ufw default deny outgoing
@@ -200,29 +200,10 @@ if [ -n "$PACKAGES" ]; then
     done
 fi
 
-# Set the root password
-printf "%s:%s" "root" "$ROOT_PASS" | chpasswd
-# Set the admin user password
-printf "%s:%s" "$ADMIN" "$ADMIN_PASS" | chpasswd
-# Create a low privilege user on the system
-adduser -D -h "/home/$USER" -s /bin/ash "$USER"
-# Set the low privilege user password
-printf "%s:%s" "$USER" "$USER_PASS" | chpasswd
-# Lock the root account
-passwd -l root
-
-# Disable SSH root logins
-sed -i 's/^#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config
-
-# Generate RSA key for low privilege user
-mkdir -p "/home/$USER/.ssh"
-yes "" | ssh-keygen -q -t rsa -b 4096 -f "/home/$USER/.ssh/id_rsa" -N ""
-chown "$USER:$USER" "/home/$USER/.ssh" "/home/$USER/.ssh/id_rsa" "/home/$USER/.ssh/id_rsa.pub"
-
 # Set appropriate permissions on critical directories
-chmod 700 /root
-chmod 600 /boot/grub/grub.cfg
-chmod 600 /etc/ssh/sshd_config
+[ -f /root ] && chmod 700 /root
+[ -f /boot/grub/grub.cfg ] && chmod 600 /boot/grub/grub.cfg
+[ -f /etc/ssh/sshd_config ] && chmod 600 /etc/ssh/sshd_config
 
 # Ensure the proper dir exists for audit rules
 mkdir -p /etc/audit/rules.d
@@ -263,7 +244,37 @@ kernelFile=/etc/sysctl.conf
     printf "%s\n" "net.ipv4.conf.default.send_redirects = 0"
 } >> $kernelFile
 
+# Set the root password
+printf "%s:%s" "root" "$ROOT_PASS" | chpasswd
+# Set the admin user password
+printf "%s:%s" "$ADMIN" "$ADMIN_PASS" | chpasswd
+# Create a low privilege user on the system
+adduser -D -h "/home/$USER" -s /bin/ash "$USER"
+# Set the low privilege user password
+printf "%s:%s" "$USER" "$USER_PASS" | chpasswd
+
+# Generate RSA key for low privilege user
+mkdir -p "/home/$USER/.ssh"
+yes "" | ssh-keygen -q -t rsa -b 4096 -f "/home/$USER/.ssh/id_rsa" -N ""
+chown "$USER:$USER" "/home/$USER/.ssh" "/home/$USER/.ssh/id_rsa" "/home/$USER/.ssh/id_rsa.pub"
+
+# Set local boot script path
+bootScript="/etc/local.d/post-setup.start"
+# Create local boot script to remove root SSH capabilites
+touch "$bootScript" || file_err "$bootScript"
+cat > "$bootScript" <<-__EOF__
+#!/bin/sh
+# Lock the root account
+passwd -l root
+# Disable SSH root logins
+sed -i 's/^#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config
+# Have script delete itself after first run
+rm -f "\$(readlink -f "\$0")"
+__EOF__
+
+# Set the boot scripts permissions to executables
+chmod +x "$bootScript"
+# Ensure the local script serivce is enabled
+rc-update add local default
 # Overwrite caller script with random data 100,000 times then delete
 shred -zu -n 100000 "$(readlink -f "$0")"
-# Reboot system which will trigger post setup script
-reboot
