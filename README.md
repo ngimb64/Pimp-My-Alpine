@@ -96,27 +96,22 @@ I find this to be the better option because I can template out the entire comman
 
 The usage depends on how the script intends on being used:
 
-- For all use cases except deployment related (Packer, Vagrant, etc.), the environment variables (especially required) need to be set, refer to Environment Variables section below
-	- Example:  `export ROOT_PASS=<password>`
+- For all templates it is critical to review their subsection in the Environment Variables section below
 <br>
 
 - base-pimp.sh, is intended to be executed after `setup-alpine`
 	- After `setup-alpine` an internet connection should be established
-	- Use wget to retrieve the script from the repository `<ADD COMMAND>`
+	- Use wget to retrieve the script from the repository `wget <ADD_URL>`
 	- Use `chmod +x <script_path>` to ensure the script is executable and run it
 <br>
 
 - extended-pimp.sh, is intended to either be physically transferred via USB or using deployment tools like Packer & Vagrant
-	- When using Packer & Vagrant, the environment variables need to be established in the Packer file to allow the provisoner to access them during execution instead of exporting them in shell
-		- Packer templates all have the same approach and all of them use the environment variables from the extended pimp script
-		- The only exception is the alpine-aws template, whose additional environment variables can be found below
-		- It is recommended to run the packer templates from the root folder of the project to prevent file path issues
-	<br>
-
-	- For Packer templates alpine-iso and alpine-vagrant ensure the DISK_SIZE environment variable is set if a size other than 40000 (around 40GB) default is desired
-		- Both these templates use the url and checksum for the standard ISO but are customizable variables like DISK_SIZE, here is how they would be set for the extended ISO instead of using the default standard
-			- `export ISO_URL=https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/x86_64/alpine-extended-3.21.3-x86_64.iso`
-			- `export ISO_CHECKSUM=4c72272d6fc4d67b884cf5568ebe42d7b59e186ae944873b39bf014ca46e1ce60379b560bebd7d7bc5bf250d6132ac6e91079a6b1b6a2d9ce788f34f35c87cc0`
+	- Packer templates all have the same approach and all of them use the environment variables from the extended pimp script
+	- Ensure to generate an SSH key so the provisioner can access the VM `ssh-keygen -t rsa -b 4096 -f ./packer/tmp_alpine_key -N ""`
+	- It is recommended to run the packer templates from the root folder of the project to prevent file path issues
+	- Both these templates use the URL and checksum for the standard ISO, here is how they would be set for the extended ISO instead of using the default standard
+		- `export ISO_URL=https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/x86_64/alpine-extended-3.21.3-x86_64.iso`
+		- `export ISO_CHECKSUM=4c72272d6fc4d67b884cf5568ebe42d7b59e186ae944873b39bf014ca46e1ce60379b560bebd7d7bc5bf250d6132ac6e91079a6b1b6a2d9ce788f34f35c87cc0`
 
 **Note**:  to ensure the packer templates work properly, run `packer init packer.pkr.hcl` in the root folder to ensure provider plugins are installed
 
@@ -132,41 +127,38 @@ The usage depends on how the script intends on being used:
 
 Environment variables required for proper execution:
 
-- ADMIN:  The name of the admin user to create
-- ADMIN_PASS:  The password of the admin user
-- USER:  The name of the user to create
-- USER_PASS:  The password of the low privileged user
-- ROOT_PASS:  The root password to be configured
+- ADMIN: &nbsp; The name of the admin user to create
+- ADMIN_PASS: &nbsp; The password of the admin user
+- USER: &nbsp; The name of the user to create
+- USER_PASS: &nbsp; The password of the low privileged user
+- ROOT_PASS: &nbsp; The root password to be configured
 
 Environment variables to export for customization (optional):
 
-- SSH:  The SSH service setting, if not set to none the default openssh is used
-- NTP:  The NTP service setting, if not set to none the default openntpd is used
-- PACKAGES:  The list of packages to be installed after initial setup,
-			 supports multiple packages as a space separated string like
-			 `export PACKAGES="package1 package2 package3"`
-
+- SSH: &nbsp; The SSH service setting, if not set the default openssh is used (options: openssh, dropbear, none)
+- NTP: &nbsp; The NTP service setting, if not set the default openntpd is used (options: busybox, openntd, chrony, none)
+- PACKAGES: &nbsp; The list of packages to be installed after initial setup, supports multiple packages as a space separated string like `export PACKAGES="package1 package2 package3"`
 
 ### extended-pimp
 
 Environment variables required for proper execution:
 
-- ADMIN:  The name of the admin user to create
-- ADMIN_PASS:  The password of the admin user
-- USER:  The name of the user to create
-- USER_PASS:  The password of the low privileged user
-- ROOT_PASS:  The root password to be configured
+- ADMIN: &nbsp; The name of the admin user to create
+- ADMIN_PASS: &nbsp; The password of the admin user
+- USER: &nbsp; The name of the user to create
+- USER_PASS: &nbsp; The password of the low privileged user
+- ROOT_PASS: &nbsp; The root password to be configured
 
 Environment variables to export for customization (optional):
 
-- SSID:  The SSID of the wireless network to connect to, WIFI_PASS must also be set
-- WIFI_PASS:  The password of the wireless network to connect to, SSID must also be set
-- HOSTNAME:  The desired hostname to be configured, if not set it will be client followed by a hyphen and six random characters
-- DNS_OPTS:  The IP address of the DNS servers to be used in space separated string like `export DNS_OPTS="1.1.1.1 1.0.0.1"` and also supports domains like `export DNS_OPTS="-d <domain> 1.1.1.1 1.0.0.1"`
-- SSH:  The SSH service setting, if not set to none the default openssh is used
-- NTP:  The NTP service setting, if not set to none the default openntpd is used
-- DISK_OPTS:  The disk options, if not set the disk type is system at /dev/sda, disk type can be changed to data like `export DISK_OPTS="-m data /dev/sda2"`
-- PACKAGES:  The list of packages to be installed after initial setup, supports multiple packages as a space separated string like `export PACKAGES="package1 package2 package3"`
+- SSID: &nbsp; The SSID of the wireless network to connect to, WIFI_PASS must also be set
+- WIFI_PASS: &nbsp; The password of the wireless network to connect to, SSID must also be set
+- HOSTNAME: &nbsp; The desired hostname to be configured, if not set it will be client followed by a hyphen and six random characters
+- DNS_OPTS: &nbsp; The IP address of the DNS servers to be used in space separated string like `export DNS_OPTS="1.1.1.1 1.0.0.1"` and also supports domains like `export DNS_OPTS="-d <domain> 1.1.1.1 1.0.0.1"`
+- SSH: &nbsp; The SSH service setting, if not set the default openssh is used (options: openssh, dropbear, none)
+- NTP: &nbsp; The NTP service setting, if not set the default openntpd is used (options: busybox, openntd, chrony, none)
+- DISK_OPTS: &nbsp; The disk options, if not set the disk type is system at /dev/sda, disk type can be changed to data like `export DISK_OPTS="-m data /dev/sda2"`
+- PACKAGES: &nbsp; The list of packages to be installed after initial setup, supports multiple packages as a space separated string like `export PACKAGES="package1 package2 package3"`
 <br>
 
 
@@ -176,20 +168,34 @@ Environment variables to export for customization (optional):
 
 Environment variables required for proper execution:
 
-- AWS_ACCOUNT_ID:  The AWS account ID number
-- S3_BUCKET:  The AWS S3 bucket where the resulting AMI will be stored
-- X509_CERT_PATH:  The path to the x509 certificate used in bundling
-- X509_KEY_PATH:  The path to the x509 key used in bundling
-- AWS_ACCESS_KEY:  The AWS API access key
-- AWS_SECRET_KEY:  The AWS API secret key
-- AWS_REGION:  The AWS region where EC2 will be provisioned
-- AWS_INSTANCE_TYPE:  The type of EC2 instance to be utilized
+- AWS_ACCOUNT_ID: &nbsp; The AWS account ID number
+- S3_BUCKET: &nbsp; The AWS S3 bucket where the resulting AMI will be stored
+- X509_CERT_PATH: &nbsp; The path to the x509 certificate used in bundling
+- X509_KEY_PATH: &nbsp; The path to the x509 key used in bundling
+- AWS_ACCESS_KEY: &nbsp; The AWS API access key
+- AWS_SECRET_KEY: &nbsp; The AWS API secret key
+- AWS_REGION: &nbsp; The AWS region where EC2 will be provisioned
+- AWS_INSTANCE_TYPE: &nbsp; The type of EC2 instance to be utilized
 
 Environment variables to export for customization (optional):
 
-- AMI_NAME:  The name of the Amazon Machine Image to build
-- AWS_SUBNET_ID:
-- AWS_SECURITY_GROUP_ID:
+- AMI_NAME: &nbsp; The name of the Amazon Machine Image to build
+- AWS_SUBNET_ID: &nbsp; The ID of the AWS subnet to use
+- AWS_SECURITY_GROUP_ID: &nbsp; The ID of the AWS security group to use
+
+#### alpine-docker
+
+Environment variables to export for customization (optional):
+
+- DOCKER_BASE_IMAGE: &nbsp; The name of the base image used to build Docker container (alpine:latest default)
+
+#### alpine-iso and alpine-vagrant
+
+Environment variables to export for customization (optional):
+
+- ISO_URL: &nbsp; The URL to the ISO to be downloaded and used
+- ISO_CHECKSUM: &nbsp; The hash checksum of the ISO to be downloaded and used
+- DISK_SIZE: &nbsp; The size in MB of the disk to create for VM (10GB default)
 <br>
 
 

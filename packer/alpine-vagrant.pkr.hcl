@@ -78,24 +78,6 @@ variable "PACKAGES" {
   default     = ""
 }
 
-locals {
-  env_vars_list = [
-    "ADMIN=${var.ADMIN}",
-    "ADMIN_PASS=${var.ADMIN_PASS}",
-    "USER=${var.USER}",
-    "USER_PASS=${var.USER_PASS}",
-    "ROOT_PASS=${var.ROOT_PASS}",
-    "SSID=${var.SSID}",
-    "WIFI_PASS=${var.WIFI_PASS}",
-    "HOSTNAME=${var.HOSTNAME}",
-    "DNS_OPTS=${var.DNS_OPTS}",
-    "SSH=${var.SSH}",
-    "NTP=${var.NTP}",
-    "DISK_OPTS=${var.DISK_OPTS}",
-    "PACKAGES=${var.PACKAGES}"
-  ]
-}
-
 # ISO-specific variables
 variable "ISO_URL" {
   description = "URL to the Alpine Linux ISO"
@@ -115,32 +97,59 @@ variable "DISK_SIZE" {
   default     = 40000
 }
 
-source "virtualbox-iso" "alpine-vagrant" {
-  iso_url          = var.ISO_URL
-  iso_checksum     = var.ISO_CHECKSUM
-  vm_name          = "alpine-pimp-vagrant"
-  ssh_username     = "root"
-  shutdown_command = "echo 'packer' | sudo -S shutdown -P now"
-  disk_size        = var.DISK_SIZE
-  headless         = true
+locals {
+  env_vars_list = [
+    "ADMIN=${var.ADMIN}",
+    "ADMIN_PASS=${var.ADMIN_PASS}",
+    "USER=${var.USER}",
+    "USER_PASS=${var.USER_PASS}",
+    "ROOT_PASS=${var.ROOT_PASS}",
+    "SSID=${var.SSID}",
+    "WIFI_PASS=${var.WIFI_PASS}",
+    "HOSTNAME=${var.HOSTNAME}",
+    "DNS_OPTS=${var.DNS_OPTS}",
+    "SSH=${var.SSH}",
+    "NTP=${var.NTP}",
+    "DISK_OPTS=${var.DISK_OPTS}",
+    "PACKAGES=${var.PACKAGES}"
+  ]
+}
 
-  boot_wait    = "10s"
+source "virtualbox-iso" "alpine-pimp-vagrant" {
+  guest_os_type        = "Linux26_64"
+  iso_url              = var.ISO_URL
+  iso_checksum         = var.ISO_CHECKSUM
+  ssh_username         = "root"
+  ssh_private_key_file = "./packer/tmp_alpine_key"
+  shutdown_command     = "poweroff"
+  vm_name              = "alpine-pimp-vagrant"
+  disk_size            = var.DISK_SIZE
+  headless             = false
+
+  boot_wait    = "15s"
   boot_command = [
-    "<wait5><enter>"
+    "root<enter>",
+    "ip link set eth0 up<enter>",
+    "udhcpc -i eth0<enter>",
+    "apk add openssh<enter>",
+    "mkdir -p /root/.ssh && chmod 700 /root/.ssh<enter>",
+    "printf '%s\\n' '{{ .SSHPublicKey }}' > /root/.ssh/authorized_keys<enter>",
+    "chmod 600 /root/.ssh/authorized_keys<enter>",
+    "sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config<enter>",
+    "printf '%s\\n' 'PasswordAuthentication no' >> /etc/ssh/sshd_config<enter>",
+    "rc-update add sshd<enter>",
+    "rc-service sshd restart<enter>"
   ]
 }
 
 build {
-  name    = "alpine-pimp-vagrant-build"
-  sources = ["source.virtualbox-iso.alpine-vagrant"]
+  sources = ["source.virtualbox-iso.alpine-pimp-vagrant"]
 
-  # Upload the pimp script
   provisioner "file" {
     source      = "scripts/extended-pimp.sh"
     destination = "/opt/extended-pimp.sh"
   }
 
-  # Run script with dynamically parsed environment variables
   provisioner "shell" {
     environment_vars = local.env_vars_list
     inline           = [

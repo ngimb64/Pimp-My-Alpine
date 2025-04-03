@@ -78,6 +78,25 @@ variable "PACKAGES" {
   default     = ""
 }
 
+# ISO-specific variables
+variable "ISO_URL" {
+  description = "URL to the Alpine Linux ISO"
+  type        = string
+  default     = "https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/x86_64/alpine-standard-3.21.3-x86_64.iso"
+}
+
+variable "ISO_CHECKSUM" {
+  description = "Checksum for the Alpine Linux ISO"
+  type        = string
+  default     = "sha512:7f06d99e9c212bad281e6dd1e628f582c446d912d4711f3d8a6cbccc18834d3d0d40dd8ca9eda82bff41bde616c8b9fcc23d47a4a56dc12863c5681d69578495"
+}
+
+variable "DISK_SIZE" {
+  description = "Disk size for the virtual machine (10GB default)"
+  type        = number
+  default     = 10000
+}
+
 locals {
   env_vars_list = [
     "ADMIN=${var.ADMIN}",
@@ -96,53 +115,44 @@ locals {
   ]
 }
 
-# ISO-specific variables
-variable "ISO_URL" {
-  description = "URL to the Alpine Linux ISO"
-  type        = string
-  default     = "https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/x86_64/alpine-standard-3.21.3-x86_64.iso"
-}
-
-variable "ISO_CHECKSUM" {
-  description = "Checksum for the Alpine Linux ISO"
-  type        = string
-  default     = "sha512:7f06d99e9c212bad281e6dd1e628f582c446d912d4711f3d8a6cbccc18834d3d0d40dd8ca9eda82bff41bde616c8b9fcc23d47a4a56dc12863c5681d69578495"
-}
-
-variable "DISK_SIZE" {
-  description = "Disk size for the virtual machine (40GB default)"
-  type        = number
-  default     = 40000
-}
-
 source "virtualbox-iso" "alpine-pimp-iso" {
-  iso_url          = var.ISO_URL
-  iso_checksum     = var.ISO_CHECKSUM
-  vm_name          = "alpine-pimp-iso"
-  ssh_username     = "root"
-  shutdown_command = "echo 'packer' | sudo -S shutdown -P now"
-  disk_size        = var.DISK_SIZE
-  headless         = false
+  guest_os_type        = "Linux26_64"
+  iso_url              = var.ISO_URL
+  iso_checksum         = var.ISO_CHECKSUM
+  ssh_username         = "root"
+  ssh_private_key_file = "./packer/tmp_alpine_key"
+  shutdown_command     = "poweroff"
+  vm_name              = "alpine-pimp-iso"
+  disk_size            = var.DISK_SIZE
+  headless             = false
 
-  boot_wait = "10s"
+  boot_wait    = "15s"
   boot_command = [
-    "<wait5><enter>"
+    "root<enter>",
+    "ip link set eth0 up<enter>",
+    "udhcpc -i eth0<enter>",
+    "apk add openssh<enter>",
+    "mkdir -p /root/.ssh && chmod 700 /root/.ssh<enter>",
+    "printf '%s\\n' '{{ .SSHPublicKey }}' > /root/.ssh/authorized_keys<enter>",
+    "chmod 600 /root/.ssh/authorized_keys<enter>",
+    "sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config<enter>",
+    "printf '%s\\n' 'PasswordAuthentication no' >> /etc/ssh/sshd_config<enter>",
+    "rc-update add sshd<enter>",
+    "rc-service sshd restart<enter>"
   ]
 }
 
 build {
   sources = ["sources.virtualbox-iso.alpine-pimp-iso"]
 
-  # Upload the pimp script
   provisioner "file" {
     source      = "scripts/extended-pimp.sh"
     destination = "/opt/extended-pimp.sh"
   }
 
-  # Run script with dynamically parsed environment variables
   provisioner "shell" {
     environment_vars = local.env_vars_list
-    inline = [
+    inline           = [
       "sh /opt/extended-pimp.sh"
     ]
   }

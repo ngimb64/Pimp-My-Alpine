@@ -2,14 +2,7 @@
 
 ---
 ### Coding Conventions
-- Biggest rule is to **comment your code**
-  - Provide a brief description of line of code in sentence format without periods and avoiding fluff words
-  - Also consider what the purpose the line code has in relation to the function it resides in
-  - Not necessarily everything needs to be commented, say for example a bunch of regular expressions are being compiled.
-    Instead of commenting every one, logically group them and have a single comment at the top of that grouping
-  <br>
-
-- To better understand my formatting, check out any of my projects
+- To better understand my formatting, check out format of the existing code in the project
 - No dead / commented out code should be in a pull request under any circumstances
 - Put a space between chunks of logic to help visually represent what is going on
 - The goal is to achieve maximum readability and documentation

@@ -1,0 +1,5 @@
+# Folders
+packer_cache/
+
+# Files
+packer/tmp_alpine_key*

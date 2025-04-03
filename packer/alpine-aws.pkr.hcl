@@ -132,13 +132,13 @@ variable "AMI_NAME" {
 variable "AWS_SUBNET_ID" {
   description = "AWS Subnet ID"
   type        = string
-  default     = null
+  default     = ""
 }
 
 variable "AWS_SECURITY_GROUP_ID" {
   description = "AWS Security Group ID"
   type        = string
-  default     = null
+  default     = ""
 }
 
 locals {
@@ -190,16 +190,14 @@ source "amazon-instance" "alpine-pimp-ami" {
 build {
   sources = ["source.amazon-instance.alpine-pimp-ami"]
 
-  # Upload the pimp script
   provisioner "file" {
     source      = "scripts/extended-pimp.sh"
     destination = "/opt/extended-pimp.sh"
   }
 
-  # Run script with dynamically parsed environment variables
   provisioner "shell" {
     environment_vars = local.env_vars_list
-    inline = [
+    inline           = [
       "sh /opt/extended-pimp.sh"
     ]
   }

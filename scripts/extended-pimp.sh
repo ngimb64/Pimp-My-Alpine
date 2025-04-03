@@ -216,7 +216,7 @@ sed -i 's/^#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd
 
 # Generate RSA key for low privilege user
 mkdir -p "/home/$USER/.ssh"
-yes "" | ssh-keygen -q -t rsa -b 4096 -f "/home/$USER/.ssh" -N ""
+yes "" | ssh-keygen -q -t rsa -b 4096 -f "/home/$USER/.ssh/id_rsa" -N ""
 chown "$USER:$USER" "/home/$USER/.ssh" "/home/$USER/.ssh/id_rsa" "/home/$USER/.ssh/id_rsa.pub"
 
 # Set appropriate permissions on critical directories

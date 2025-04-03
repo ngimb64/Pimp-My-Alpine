@@ -78,6 +78,13 @@ variable "PACKAGES" {
   default     = ""
 }
 
+# Docker variables section
+variable "DOCKER_BASE_IMAGE" {
+  description = "Docker base image name"
+  type        = string
+  default     = "alpine:latest"
+}
+
 locals {
   env_vars_list = [
     "ADMIN=${var.ADMIN}",
@@ -96,38 +103,29 @@ locals {
   ]
 }
 
-variable "docker_base_image" {
-  type    = string
-  default = "alpine:latest"
-}
-
 source "docker" "alpine" {
   privileged = true
-  image      = var.docker_base_image
+  image      = var.DOCKER_BASE_IMAGE
   commit     = true
 }
 
 build {
-  name = "alpine-pimptainer-build"
   sources = [
     "source.docker.alpine"
   ]
 
-  # Upload the pimp script
   provisioner "file" {
     source      = "scripts/extended-pimp.sh"
     destination = "/opt/extended-pimp.sh"
   }
 
-  # Run script with dynamically parsed environment variables
   provisioner "shell" {
     environment_vars = local.env_vars_list
-    inline = [
+    inline           = [
       "sh /opt/extended-pimp.sh"
     ]
   }
 
-  # Tag the image as latest
   post-processor "docker-tag" {
     repository = "alpine-pimptainer"
     tags       = [
