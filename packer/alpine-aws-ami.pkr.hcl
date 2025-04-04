@@ -181,8 +181,8 @@ source "amazon-instance" "alpine-pimp-ami" {
   region            = var.AWS_REGION
   instance_type     = var.AWS_INSTANCE_TYPE
   source_ami        = data.amazon-ami.alpine-base.id
-  subnet_id         = lookup(var, "AWS_SUBNET_ID", "")
-  security_group_id = lookup(var, "AWS_SECURITY_GROUP_ID", "")
+  subnet_id         = var.AWS_SUBNET_ID
+  security_group_id = var.AWS_SECURITY_GROUP_ID
   ssh_username      = "root"
   communicator      = "ssh"
 }

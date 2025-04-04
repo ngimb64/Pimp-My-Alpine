@@ -53,21 +53,39 @@ ARCH="$(uname -m)"
 # If Intel processor is utilized, install CPU microcode
 [ "$ARCH" = "i386" ] && apk add intel-ucode
 
-# Install ufw and needed packages
-apk add --no-cache doas ip6tables logrotate ufw rsyslog sudo
-# Deny all incoming and outgoing traffic by default
-ufw default deny incoming
-ufw default deny outgoing
-# Open SSH port and limit connection attempts if not none
-[ "$SSH" != "none" ] && ufw limit SSH
-# Allow outgoing NTP if not none
-[ "$NTP" != "none" ] && ufw allow out 123/udp
-# Configure outgoing HTTP and DNS for apk to work
-ufw allow out DNS
-ufw allow out 80/tcp
-# Enable ufw and add to rc boot scripts
-ufw enable
-rc-update add ufw
+# Install necessary packages
+apk add --no-cache doas iptables ip6tables logrotate rsyslog sudo
+
+# Flush existing rules and set default policies
+iptables -F
+iptables -X
+iptables -P INPUT DROP
+iptables -P OUTPUT DROP
+iptables -P FORWARD DROP
+# Allow incoming SSH and apply rate limiting if SSH is enabled
+if [ "$SSH" != "none" ]; then
+    iptables -A INPUT -p tcp --dport 22 -m state --state NEW -m limit --limit 3/min --limit-burst 5 -j ACCEPT
+    iptables -A INPUT -p tcp --dport 22 -m state --state NEW -j DROP
+fi
+# Allow outgoing NTP if enabled
+[ "$NTP" != "none" ] && iptables -A OUTPUT -p udp --dport 123 -j ACCEPT
+# Allow outgoing DNS
+iptables -A OUTPUT -p udp --dport 53 -j ACCEPT
+iptables -A OUTPUT -p tcp --dport 53 -j ACCEPT
+# Allow outgoing HTTP (for apk to work)
+iptables -A OUTPUT -p tcp --dport 80 -j ACCEPT
+# Save iptables rules
+iptables-save > /etc/iptables.rules
+
+iptablesRules="/etc/local.d/iptables.start"
+# Load iptables rules on boot
+cat > "$iptablesRules" <<-__EOF__
+#!/bin/sh
+iptables-restore < /etc/iptables.rules
+__EOF__
+
+# Set the boot scripts permissions to executable
+chmod +x "$iptablesRules"
 
 # If packages is a present variable
 if [ -n "$PACKAGES" ]; then
@@ -139,7 +157,6 @@ chown "$USER:$USER" "/home/$USER/.ssh" "/home/$USER/.ssh/id_rsa" "/home/$USER/.s
 # Set local boot script path
 bootScript="/etc/local.d/post-setup.start"
 # Create local boot script to remove root SSH capabilites
-touch "$bootScript" || file_err "$bootScript"
 cat > "$bootScript" <<-__EOF__
 #!/bin/sh
 # Lock the root account
@@ -150,7 +167,7 @@ sed -i 's/^#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd
 rm -f "\$(readlink -f "\$0")"
 __EOF__
 
-# Set the boot scripts permissions to executables
+# Set the boot script permissions to executable
 chmod +x "$bootScript"
 # Ensure the local script serivce is enabled
 rc-update add local default

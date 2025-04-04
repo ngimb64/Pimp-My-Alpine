@@ -103,7 +103,7 @@ locals {
   ]
 }
 
-source "docker" "alpine" {
+source "docker" "alpine-pimptainer" {
   privileged = true
   image      = var.DOCKER_BASE_IMAGE
   commit     = true
@@ -111,7 +111,7 @@ source "docker" "alpine" {
 
 build {
   sources = [
-    "source.docker.alpine"
+    "source.docker.alpine-pimptainer"
   ]
 
   provisioner "file" {

@@ -41,7 +41,10 @@ Overall the script has little dependencies, with the exception of using wireless
 	- https://chocolatey.org/install
 <br>
 
-- https://developer.hashicorp.com/vagrant/install
+- https://www.virtualbox.org/wiki/Downloads
+<br>
+
+- https://docs.docker.com/engine/install/
 <br>
 
 
@@ -96,27 +99,41 @@ I find this to be the better option because I can template out the entire comman
 
 The usage depends on how the script intends on being used:
 
-- For all templates it is critical to review their subsection in the Environment Variables section below
+- For all scripts & templates it is critical to review their subsection in the Environment Variables section below
 <br>
 
-- base-pimp.sh, is intended to be executed after `setup-alpine`
+- `base-pimp.sh`, is intended to be executed after `setup-alpine`
 	- After `setup-alpine` an internet connection should be established
 	- Use wget to retrieve the script from the repository `wget <ADD_URL>`
 	- Use `chmod +x <script_path>` to ensure the script is executable and run it
+	- After running the script reboot and run `/etc/init.d/local start 2>/dev/null` to ensure installed boot scripts are run
 <br>
 
-- extended-pimp.sh, is intended to either be physically transferred via USB or using deployment tools like Packer & Vagrant
-	- Packer templates all have the same approach and all of them use the environment variables from the extended pimp script
-	- It is recommended to run the packer templates from the root folder of the project to prevent file path issues
-	- Both these templates use the URL and checksum for the standard ISO, here is how they would be set for the extended ISO instead of using the default standard
-		- `export ISO_URL=https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/x86_64/alpine-extended-3.21.3-x86_64.iso`
-		- `export ISO_CHECKSUM=4c72272d6fc4d67b884cf5568ebe42d7b59e186ae944873b39bf014ca46e1ce60379b560bebd7d7bc5bf250d6132ac6e91079a6b1b6a2d9ce788f34f35c87cc0`
+- `extended-pimp.sh`, is intended to either be physically transferred via USB or using deployment tools like Packer & Vagrant
+	- After running the script reboot and run `/etc/init.d/local start 2>/dev/null` to ensure installed boot scripts are run
+<br>
 
 **Note**:  to ensure the packer templates work properly, run `packer init packer.pkr.hcl` in the root folder to ensure provider plugins are installed
 
+- Packer templates all have the same approach and all of them use the environment variables from the extended pimp script
+- It is recommended to run the packer templates from the root folder of the project to prevent file path issues
+	- `alpine-aws-ami.pkr.hcl` (not tested yet), is intended to take the base Alpine AMI, customize it, and store the result in an S3 bucket
+	<br>
+
+	- `alpine-docker.pkr.hcl`, is intended to take the base Alpine image, customize it, and store the resulting image
+		- After the process is complete, the image can be run by switching into the docker folder and running `docker-compose up -d`
+	<br>
+
+	- `alpine-ova.pkr.hcl`, is intended to take the base Alpine ISO, customize it, and store the resulting OVA image
+		- After the process is complete, the resulting OVA can be easily imported into VirtualBox at the top tab `File -> Import Appliance`
+		- The alpine-ova template uses the URL and checksum for the standard ISO, here is how they would be set for the extended ISO instead of using the default standard
+			- `export ISO_URL=https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/x86_64/alpine-extended-3.21.3-x86_64.iso`
+			- `export ISO_CHECKSUM=4c72272d6fc4d67b884cf5568ebe42d7b59e186ae944873b39bf014ca46e1ce60379b560bebd7d7bc5bf250d6132ac6e91079a6b1b6a2d9ce788f34f35c87cc0`
+<br>
+
 - After the command line history has been disabled export the environment variables that are required and optional if desired
 - Then simply build the template with `packer build <template_file>`
-	- For Vagrant box generation, the resulting box can be added with `vagrant box add <.box_file> --name <box_name>`
+- After running the script and running the container or OVA, run `/etc/init.d/local start 2>/dev/null` to ensure installed boot scripts are run
 <br>
 
 
@@ -163,7 +180,7 @@ Environment variables to export for customization (optional):
 
 ### Packer Templates (includes variables from extended pimp script)
 
-#### alpine-aws
+#### alpine-aws-ami
 
 Environment variables required for proper execution:
 
@@ -188,7 +205,7 @@ Environment variables to export for customization (optional):
 
 - DOCKER_BASE_IMAGE: &nbsp; The name of the base image used to build Docker container (alpine:latest default)
 
-#### alpine-iso and alpine-vagrant
+#### alpine-ova
 
 Environment variables to export for customization (optional):
 

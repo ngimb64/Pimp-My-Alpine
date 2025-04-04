@@ -1,21 +1,8 @@
-version: "3.8"
-
 services:
-  alpine-pimp:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    environment:
-      # Required variables (MUST be set)
-      ADMIN: "${ADMIN:?Error: ADMIN is required}"
-      ADMIN_PASS: "${ADMIN_PASS:?Error: ADMIN_PASS is required}"
-      USER: "${USER:?Error: USER is required}"
-      USER_PASS: "${USER_PASS:?Error: USER_PASS is required}"
-      ROOT_PASS: "${ROOT_PASS:?Error: ROOT_PASS is required}"
-
-      # Optional variables (Can be empty)
-      HARDENING_LEVEL: "${HARDENING_LEVEL:-high}"
-      EXTRA_PACKAGES: "${EXTRA_PACKAGES:-vim htop}"
-    container_name: alpine-pimp
-    stdin_open: true
-    tty: true
+  alpine-pimptainer:
+    image: alpine-pimptainer
+    container_name: alpine-pimptainer
+    restart: unless-stopped
+    ports:
+      - "2222:22"
+    command: tail -f /dev/null
