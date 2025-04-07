@@ -1,2 +1,6 @@
 # Folders
 packer_cache/
+
+# Files
+packer/key.pem
+packer/cert.pem

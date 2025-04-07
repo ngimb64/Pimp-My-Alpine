@@ -104,7 +104,7 @@ The usage depends on how the script intends on being used:
 
 - `base-pimp.sh`, is intended to be executed after `setup-alpine`
 	- After `setup-alpine` an internet connection should be established
-	- Use wget to retrieve the script from the repository `wget <ADD_URL>`
+	- Use wget to retrieve the script from the repository `wget https://raw.githubusercontent.com/ngimb64/Pimp-My-Alpine/refs/heads/main/scripts/base-pimp.sh`
 	- Use `chmod +x <script_path>` to ensure the script is executable and run it
 	- After running the script reboot and run `/etc/init.d/local start 2>/dev/null` to ensure installed boot scripts are run
 <br>
@@ -117,9 +117,6 @@ The usage depends on how the script intends on being used:
 
 - Packer templates all have the same approach and all of them use the environment variables from the extended pimp script
 - It is recommended to run the packer templates from the root folder of the project to prevent file path issues
-	- `alpine-aws-ami.pkr.hcl` (not tested yet), is intended to take the base Alpine AMI, customize it, and store the result in an S3 bucket
-	<br>
-
 	- `alpine-docker.pkr.hcl`, is intended to take the base Alpine image, customize it, and store the resulting image
 		- After the process is complete, the image can be run by switching into the docker folder and running `docker-compose up -d`
 	<br>
@@ -153,7 +150,7 @@ Environment variables to export for customization (optional):
 
 - SSH: &nbsp; The SSH service setting, if not set the default openssh is used (options: openssh, dropbear, none)
 - NTP: &nbsp; The NTP service setting, if not set the default openntpd is used (options: busybox, openntd, chrony, none)
-- PACKAGES: &nbsp; The list of packages to be installed after initial setup, supports multiple packages as a space separated string like `export PACKAGES="package1 package2 package3"`
+- PACKAGES: &nbsp; The list of packages to be installed after initial setup, supports multiple packages as a space separated string like `export PKR_VAR_PACKAGES="package1 package2 package3"`
 
 ### extended-pimp
 
@@ -170,34 +167,15 @@ Environment variables to export for customization (optional):
 - SSID: &nbsp; The SSID of the wireless network to connect to, WIFI_PASS must also be set
 - WIFI_PASS: &nbsp; The password of the wireless network to connect to, SSID must also be set
 - HOSTNAME: &nbsp; The desired hostname to be configured, if not set it will be client followed by a hyphen and six random characters
-- DNS_OPTS: &nbsp; The IP address of the DNS servers to be used in space separated string like `export DNS_OPTS="1.1.1.1 1.0.0.1"` and also supports domains like `export DNS_OPTS="-d <domain> 1.1.1.1 1.0.0.1"`
+- DNS_OPTS: &nbsp; The IP address of the DNS servers to be used in space separated string like `export PKR_VAR_DNS_OPTS="1.1.1.1 1.0.0.1"` and also supports domains like `export PKR_VAR_DNS_OPTS="-d <domain> 1.1.1.1 1.0.0.1"`
 - SSH: &nbsp; The SSH service setting, if not set the default openssh is used (options: openssh, dropbear, none)
-- NTP: &nbsp; The NTP service setting, if not set the default openntpd is used (options: busybox, openntd, chrony, none)
-- DISK_OPTS: &nbsp; The disk options, if not set the disk type is system at /dev/sda, disk type can be changed to data like `export DISK_OPTS="-m data /dev/sda2"`
-- PACKAGES: &nbsp; The list of packages to be installed after initial setup, supports multiple packages as a space separated string like `export PACKAGES="package1 package2 package3"`
+- NTP: &nbsp; The NTP service setting, if not set the default crony is used (options: busybox, openntd, crony, none)
+- DISK_OPTS: &nbsp; The disk options, if not set the disk type is system at /dev/sda, disk type can be changed to data like `export PKR_VAR_DISK_OPTS="-m data /dev/sda2"`
+- PACKAGES: &nbsp; The list of packages to be installed after initial setup, supports multiple packages as a space separated string like `export PKR_VAR_PACKAGES="package1 package2 package3"`
 <br>
 
 
 ### Packer Templates (includes variables from extended pimp script)
-
-#### alpine-aws-ami
-
-Environment variables required for proper execution:
-
-- AWS_ACCOUNT_ID: &nbsp; The AWS account ID number
-- S3_BUCKET: &nbsp; The AWS S3 bucket where the resulting AMI will be stored
-- X509_CERT_PATH: &nbsp; The path to the x509 certificate used in bundling
-- X509_KEY_PATH: &nbsp; The path to the x509 key used in bundling
-- AWS_ACCESS_KEY: &nbsp; The AWS API access key
-- AWS_SECRET_KEY: &nbsp; The AWS API secret key
-- AWS_REGION: &nbsp; The AWS region where EC2 will be provisioned
-- AWS_INSTANCE_TYPE: &nbsp; The type of EC2 instance to be utilized
-
-Environment variables to export for customization (optional):
-
-- AMI_NAME: &nbsp; The name of the Amazon Machine Image to build
-- AWS_SUBNET_ID: &nbsp; The ID of the AWS subnet to use
-- AWS_SECURITY_GROUP_ID: &nbsp; The ID of the AWS security group to use
 
 #### alpine-docker
 

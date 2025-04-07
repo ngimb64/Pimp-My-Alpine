@@ -178,37 +178,6 @@ ARCH="$(uname -m)"
 # Install necessary packages
 apk add --no-cache doas iptables ip6tables logrotate rsyslog sudo
 
-# Flush existing rules and set default policies
-iptables -F
-iptables -X
-iptables -P INPUT DROP
-iptables -P OUTPUT DROP
-iptables -P FORWARD DROP
-# Allow incoming SSH and apply rate limiting if SSH is enabled
-if [ "$SSH" != "none" ]; then
-    iptables -A INPUT -p tcp --dport 22 -m state --state NEW -m limit --limit 3/min --limit-burst 5 -j ACCEPT
-    iptables -A INPUT -p tcp --dport 22 -m state --state NEW -j DROP
-fi
-# Allow outgoing NTP if enabled
-[ "$NTP" != "none" ] && iptables -A OUTPUT -p udp --dport 123 -j ACCEPT
-# Allow outgoing DNS
-iptables -A OUTPUT -p udp --dport 53 -j ACCEPT
-iptables -A OUTPUT -p tcp --dport 53 -j ACCEPT
-# Allow outgoing HTTP (for apk to work)
-iptables -A OUTPUT -p tcp --dport 80 -j ACCEPT
-# Save iptables rules
-iptables-save > /etc/iptables.rules
-
-iptablesRules="/etc/local.d/iptables.start"
-# Load iptables rules on boot
-cat > "$iptablesRules" <<-__EOF__
-#!/bin/sh
-iptables-restore < /etc/iptables.rules
-__EOF__
-
-# Set the boot scripts permissions to executable
-chmod +x "$iptablesRules"
-
 # If packages is a present variable
 if [ -n "$PACKAGES" ]; then
     # Iterate through space separated packages string
@@ -281,6 +250,34 @@ bootScript="/etc/local.d/post-setup.start"
 # Create local boot script to remove root SSH capabilites
 cat > "$bootScript" <<-__EOF__
 #!/bin/sh
+
+# Flush existing rules
+iptables -F
+iptables -X
+# Allow established and related connections before applying default drop policies
+iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+iptables -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+# Set default policies
+iptables -P INPUT DROP
+iptables -P OUTPUT DROP
+iptables -P FORWARD DROP
+# Allow incoming SSH and apply rate limiting if SSH is enabled
+if [ "$SSH" != "none" ]; then
+    iptables -A INPUT -p tcp --dport 22 -m state --state NEW -m limit --limit 3/min --limit-burst 5 -j ACCEPT
+    iptables -A INPUT -p tcp --dport 22 -m state --state NEW -j DROP
+fi
+# Allow outgoing NTP if enabled
+[ "$NTP" != "none" ] && iptables -A OUTPUT -p udp --dport 123 -j ACCEPT
+# Allow outgoing DNS
+iptables -A OUTPUT -p udp --dport 53 -j ACCEPT
+iptables -A OUTPUT -p tcp --dport 53 -j ACCEPT
+# Allow outgoing HTTP (for apk to work)
+iptables -A OUTPUT -p tcp --dport 80 -j ACCEPT
+# Set iptables to start on reboot
+rc-update add iptables
+# Write the firewall rules to disk
+rc-service iptables save
+
 # Lock the root account
 passwd -l root
 # Disable SSH root logins

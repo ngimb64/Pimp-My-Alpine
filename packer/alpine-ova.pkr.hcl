@@ -63,7 +63,7 @@ variable "SSH" {
 variable "NTP" {
   description = "Optional NTP settings"
   type        = string
-  default     = "openntpd"
+  default     = "crony"
 }
 
 variable "DISK_OPTS" {
