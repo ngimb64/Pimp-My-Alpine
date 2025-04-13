@@ -145,15 +145,8 @@ source "virtualbox-iso" "alpine-pimp-ova" {
 build {
   sources = ["sources.virtualbox-iso.alpine-pimp-ova"]
 
-  provisioner "file" {
-    source      = "scripts/extended-pimp.sh"
-    destination = "/opt/extended-pimp.sh"
-  }
-
   provisioner "shell" {
     environment_vars = local.env_vars_list
-    inline           = [
-      "sh /opt/extended-pimp.sh"
-    ]
+    script           = "scripts/extended-pimp.sh"
   }
 }

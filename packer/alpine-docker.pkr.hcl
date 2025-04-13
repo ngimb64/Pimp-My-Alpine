@@ -110,26 +110,15 @@ source "docker" "alpine-pimptainer" {
 }
 
 build {
-  sources = [
-    "source.docker.alpine-pimptainer"
-  ]
-
-  provisioner "file" {
-    source      = "scripts/extended-pimp.sh"
-    destination = "/opt/extended-pimp.sh"
-  }
+  sources = ["source.docker.alpine-pimptainer"]
 
   provisioner "shell" {
     environment_vars = local.env_vars_list
-    inline           = [
-      "sh /opt/extended-pimp.sh"
-    ]
+    script           = "scripts/extended-pimp.sh"
   }
 
   post-processor "docker-tag" {
     repository = "alpine-pimptainer"
-    tags       = [
-      "latest"
-    ]
+    tags       = ["latest"]
   }
 }

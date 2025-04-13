@@ -54,14 +54,15 @@ ARCH="$(uname -m)"
 [ "$ARCH" = "i386" ] && apk add intel-ucode
 
 # Install necessary packages
-apk add --no-cache doas iptables ip6tables logrotate rsyslog sudo
+for package in "doas iptables ip6tables logrotate rsyslog sudo"; do
+    apk add --no-cache $package
+done
 
 # If packages is a present variable
 if [ -n "$PACKAGES" ]; then
-    # Iterate through space separated packages string
-    for element in $PACKAGES; do
-        # Install current package in string
-        apk add "$element"
+    # Install extra packages
+    for package in $PACKAGES; do
+        apk add --no-cache $package
     done
 fi
 
@@ -118,6 +119,11 @@ adduser -D -h "/home/$USER" -s /bin/ash "$USER"
 # Set the low privilege user password
 printf "%s:%s" "$USER" "$USER_PASS" | chpasswd
 
+# Generate RSA key for admin user
+mkdir -p "/home/$ADMIN/.ssh"
+yes "" | ssh-keygen -q -t rsa -b 4096 -f "/home/$ADMIN/.ssh/id_rsa" -N ""
+chown "$ADMIN:$ADMIN" "/home/$ADMIN/.ssh" "/home/$ADMIN/.ssh/id_rsa" "/home/$ADMIN/.ssh/id_rsa.pub"
+
 # Generate RSA key for low privilege user
 mkdir -p "/home/$USER/.ssh"
 yes "" | ssh-keygen -q -t rsa -b 4096 -f "/home/$USER/.ssh/id_rsa" -N ""
@@ -160,6 +166,9 @@ rc-service iptables save
 passwd -l root
 # Disable SSH root logins
 sed -i 's/^#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config
+sed -i 's/^PermitRootLogin yes/PermitRootLogin no/' /etc/ssh/sshd_config
+# Syncronize cached writes to persistent storage
+sync
 # Have script delete itself after first run
 rm -f "\$(readlink -f "\$0")"
 __EOF__
@@ -168,5 +177,7 @@ __EOF__
 chmod +x "$bootScript"
 # Ensure the local script serivce is enabled
 rc-update add local default
+# Syncronize cached writes to persistent storage
+sync
 # Overwrite caller script with random data 100,000 times then delete
 shred -zu -n 100000 "$(readlink -f "$0")"
