@@ -74,15 +74,13 @@ fi
 # Ensure the proper dir exists for audit rules
 mkdir -p /etc/audit/rules.d
 # Add rules to audit rule file
-auditRuleFile=/etc/audit/rules.d/audit.rules
 {
     printf "%s\n" "-w /etc/passwd -p wa -k passwd_changes"
     printf "%s\n" "-w /etc/shadow -p wa -k shadow_changes"
     printf "%s\n" "-w /etc/group -p wa -k group_changes"
-} >> "$auditRuleFile"
+} >> /etc/audit/rules.d/audit.rules
 
 # Disable unused file systems
-filesysDisableFile=/etc/modprobe.d/disable-filesystems.conf
 {
     printf "%s\n" "install cramfs /bin/true"
     printf "%s\n" "install freevxfs /bin/true"
@@ -92,10 +90,9 @@ filesysDisableFile=/etc/modprobe.d/disable-filesystems.conf
     printf "%s\n" "install squashfs /bin/true"
     printf "%s\n" "install udf /bin/true"
     printf "%s\n" "install vfat /bin/true"
-} >> "$filesysDisableFile"
+} >> /etc/modprobe.d/disable-filesystems.conf
 
 # Tune kernel parameters
-kernelFile=/etc/sysctl.conf
 {
     printf "%s\n" "net.ipv4.ip_forward = 0"
     printf "%s\n" "net.ipv4.conf.all.accept_source_route = 0"
@@ -108,7 +105,7 @@ kernelFile=/etc/sysctl.conf
     printf "%s\n" "net.ipv4.tcp_syncookies = 1"
     printf "%s\n" "net.ipv4.conf.all.send_redirects = 0"
     printf "%s\n" "net.ipv4.conf.default.send_redirects = 0"
-} >> $kernelFile
+} >> /etc/sysctl.conf
 
 # Set the root password
 printf "%s:%s" "root" "$ROOT_PASS" | chpasswd

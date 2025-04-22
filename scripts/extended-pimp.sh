@@ -32,7 +32,7 @@ file_err() {
 
 # Function to generate random string of passed in length
 generate_random_string() {
-    length="$1"
+    local length="$1"
     tr -dc 'A-Za-z0-9' < /dev/urandom | head -c "$length"
     echo
 }
@@ -41,17 +41,25 @@ generate_random_string() {
 # Function to setup a persistent wireless connection
 wifi_setup() {
     # Install needed packages from local cache
-    apk add iw linux-firmware wireless-tools wpa_supplicant
+    apk add --no-cache iw wireless-tools wpa_supplicant
+    # Get the wireless interface
+    local wifiIface=$(ifconfig | grep -o "wlan[0-9]")
     # Set wlan interface to active
-    ip link set wlan0 up
+    ip link set "$wifiIface" up
     # Assign SSID and password in config file
     wpa_passphrase "$SSID" "$WIFI_PASS" > /etc/wpa_supplicant/wpa_supplicant.conf
     # Start the service daemon in the background
-    wpa_supplicant -B -i wlan0 -c /etc/wpa_supplicant/wpa_supplicant.conf
+    wpa_supplicant -B -i "$wifiIface" -c /etc/wpa_supplicant/wpa_supplicant.conf
     # Configure wireless interface with IP address
-    udhcp -i wlan0
+    udhcp -i "$wifiIface"
+
     # Add wireless interface to /etc/network/interfaces
-    printf "%s\n%s\n%s\n" "auto lo" "auto wlan0" "iface wlan0 inet dhcp" >> /etc/network/interfaces
+    {
+        printf "%s\n" "auto lo"
+        printf "%s\n" "auto $wifiIface"
+        printf "%s\n" "iface $wifiIface inet dhcp"
+    } >> /etc/network/interfaces
+
     # Manually restart (or start) networking
     rc-service networking --quiet restart &
     #ensure that networking is set to start on boot
@@ -196,15 +204,13 @@ fi
 # Ensure the proper dir exists for audit rules
 mkdir -p /etc/audit/rules.d
 # Add rules to audit rule file
-auditRuleFile=/etc/audit/rules.d/audit.rules
 {
     printf "%s\n" "-w /etc/passwd -p wa -k passwd_changes"
     printf "%s\n" "-w /etc/shadow -p wa -k shadow_changes"
     printf "%s\n" "-w /etc/group -p wa -k group_changes"
-} >> "$auditRuleFile"
+} >> /etc/audit/rules.d/audit.rules
 
 # Disable unused file systems
-filesysDisableFile=/etc/modprobe.d/disable-filesystems.conf
 {
     printf "%s\n" "install cramfs /bin/true"
     printf "%s\n" "install freevxfs /bin/true"
@@ -214,10 +220,9 @@ filesysDisableFile=/etc/modprobe.d/disable-filesystems.conf
     printf "%s\n" "install squashfs /bin/true"
     printf "%s\n" "install udf /bin/true"
     printf "%s\n" "install vfat /bin/true"
-} >> "$filesysDisableFile"
+} >> /etc/modprobe.d/disable-filesystems.conf
 
 # Tune kernel parameters
-kernelFile=/etc/sysctl.conf
 {
     printf "%s\n" "net.ipv4.ip_forward = 0"
     printf "%s\n" "net.ipv4.conf.all.accept_source_route = 0"
@@ -230,7 +235,7 @@ kernelFile=/etc/sysctl.conf
     printf "%s\n" "net.ipv4.tcp_syncookies = 1"
     printf "%s\n" "net.ipv4.conf.all.send_redirects = 0"
     printf "%s\n" "net.ipv4.conf.default.send_redirects = 0"
-} >> $kernelFile
+} >> /etc/sysctl.conf
 
 # Set the root password
 printf "%s:%s" "root" "$ROOT_PASS" | chpasswd

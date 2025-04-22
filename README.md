@@ -35,7 +35,7 @@
 
 ## Installation
 
-Overall the script has little dependencies, with the exception of using wireless connections where no wired is available which requires the Alpine Extended ISO is used to ensure that locally cached packages are available to be able to make a wireless connection. If HashiCorp Packer or Vagrant are used for deployment the below links are all that is needed to get everything installed:
+Overall the script has little dependencies, with the exception of using wireless connections where no wired is available which requires the Alpine Extended ISO is used to ensure that locally cached packages are available to be able to make a wireless connection. If HashiCorp Packer is used for deployment the below links are all that is needed to get everything installed:
 
 - https://developer.hashicorp.com/packer/tutorials/docker-get-started/get-started-install-cli
 	- https://chocolatey.org/install
@@ -71,7 +71,7 @@ Set-PSReadlineOption -HistorySaveStyle SaveNothing
 **Note**:  with PowerShell the command history can be re-enabled but will save all the commands executed in the session, therefore it is best to exit and open a new shell instead
 <br>
 
-Packer and Vagrant support Linux and Windows systems, so below is how to set environment variables on both systems (though the examples are all Linux)
+Packer supports Linux and Windows systems, so below is how to set environment variables on both systems (though the examples are all Linux)
 
 Setting environment variable in Linux:
 ```
@@ -88,6 +88,7 @@ Setting environment variable in PowerShell:
 $env:PKR_VAR_<name>=<value>
 ```
 <br>
+
 
 The other option is using the `-var` flag for each variable when using the build and validate commands in packer:
 ```
