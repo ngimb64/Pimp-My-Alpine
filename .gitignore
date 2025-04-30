@@ -2,5 +2,4 @@
 packer_cache/
 
 # Files
-packer/key.pem
-packer/cert.pem
+packer/id_rsa.pem

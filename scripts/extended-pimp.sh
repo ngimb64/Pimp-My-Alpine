@@ -99,9 +99,12 @@ rm -f ~/.ash_history && ln -s /dev/null ~/.ash_history
 # If the SSH service is not none or dropbear, set it to openssh default
 [ "$SSH" != "none" ] && [ "$SSH" != "dropbear" ] && SSH="openssh"
 # If the NTP service is not equal to none or busybox or openntpd, set it to crony default
-[ "$NTP" != "none" ] && [ "$NTP" != "busybox" ] && [ "$NTP" != "openntpd" ] && NTP="crony"
+[ "$NTP" != "none" ] && [ "$NTP" != "busybox" ] && [ "$NTP" != "openntpd" ] && NTP="chrony"
 # If the disk options variable is not present
 [ -z "$DISK_OPTS" ] && DISK_OPTS="-m sys /dev/sda"
+
+ANSWER_SSH=$SSH
+[ "$OVA_BUILD" == "true" ] && ANSWER_SSH="none"
 
 # Set the answer file name
 answerFile="/tmp/answers.cfg"
@@ -142,7 +145,7 @@ APKREPOSOPTS="-1"
 USEROPTS="-a -u -g audio,input,video,netdev $ADMIN"
 
 # Install Openssh
-SSHDOPTS=$SSH
+SSHDOPTS=$ANSWER_SSH
 
 # Use openntpd
 NTPOPTS="$NTP"

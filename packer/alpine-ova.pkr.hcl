@@ -78,6 +78,12 @@ variable "PACKAGES" {
   default     = ""
 }
 
+variable "OVA_BUILD" {
+  description = "Toggle variable for OVA image builds"
+  type        = string
+  default     = ""
+}
+
 # ISO-specific variables
 variable "ISO_URL" {
   description = "URL to the Alpine Linux ISO"
@@ -111,24 +117,31 @@ locals {
     "SSH=${var.SSH}",
     "NTP=${var.NTP}",
     "DISK_OPTS=${var.DISK_OPTS}",
-    "PACKAGES=${var.PACKAGES}"
+    "PACKAGES=${var.PACKAGES}",
+    "OVA_BUILD=${var.OVA_BUILD}"
   ]
 }
 
 source "virtualbox-iso" "alpine-pimp-ova" {
+  vm_name          = "alpine-pimp-ova"
   guest_os_type    = "Linux26_64"
   iso_url          = var.ISO_URL
   iso_checksum     = var.ISO_CHECKSUM
-  ssh_username     = "root"
-  shutdown_command = "poweroff"
-  vm_name          = "alpine-pimp-ova"
+  shutdown_command = "sh -c 'sync && poweroff'"
   disk_size        = var.DISK_SIZE
   headless         = true
   format           = "ova"
 
+  ssh_username         = "root"
+  ssh_private_key_file = "packer/id_rsa.pem"
+  ssh_agent_auth       = false
+
   boot_wait    = "15s"
   boot_command = [
     "root<enter>",
+    "mkdir -p /mnt/etc/apk<enter>",
+    "printf '%s\\n' 'http://dl-cdn.alpinelinux.org/alpine/v3.21/main' > /mnt/etc/apk/repositories<enter>",
+    "cp /etc/resolv.conf /mnt/etc/resolv.conf<enter>",
     "ip link set eth0 up<enter>",
     "udhcpc -i eth0<enter>",
     "apk add openssh<enter>",

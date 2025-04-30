@@ -123,10 +123,12 @@ The usage depends on how the script intends on being used:
 	<br>
 
 	- `alpine-ova.pkr.hcl`, is intended to take the base Alpine ISO, customize it, and store the resulting OVA image
-		- After the process is complete, the resulting OVA can be easily imported into VirtualBox at the top tab `File -> Import Appliance`
+	- Though this script seems to run fully, it currently is having issues with configurations persisting after the setup-alpine script and is not recommended until resolved
+		- Before running the template, generate a private SSH key for the provisioner with `openssl genpkey -algorithm RSA -out packer/id_rsa.pem -pkeyopt rsa_keygen_bits:4096`
 		- The alpine-ova template uses the URL and checksum for the standard ISO, here is how they would be set for the extended ISO instead of using the default standard
 			- `export ISO_URL=https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/x86_64/alpine-extended-3.21.3-x86_64.iso`
 			- `export ISO_CHECKSUM=4c72272d6fc4d67b884cf5568ebe42d7b59e186ae944873b39bf014ca46e1ce60379b560bebd7d7bc5bf250d6132ac6e91079a6b1b6a2d9ce788f34f35c87cc0`
+		- After the process is complete, the resulting OVA can be easily imported into VirtualBox at the top tab `File -> Import Appliance`
 <br>
 
 - After the command line history has been disabled export the environment variables that are required and optional if desired

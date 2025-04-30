@@ -30,7 +30,7 @@ rm -f ~/.ash_history && ln -s /dev/null ~/.ash_history
 # If the SSH service is not none or dropbear, set it to openssh default
 [ "$SSH" != "none" ] && [ "$SSH" != "dropbear" ] && SSH="openssh"
 # If the NTP service is not equal to none or busybox or openntpd, set it to crony default
-[ "$NTP" != "none" ] && [ "$NTP" != "busybox" ] && [ "$NTP" != "openntpd" ] && NTP="crony"
+[ "$NTP" != "none" ] && [ "$NTP" != "busybox" ] && [ "$NTP" != "openntpd" ] && NTP="chrony"
 
 # Remove the comment from community url
 sed 's/^#//g' /etc/apk/repositories > /etc/apk/sed-parse
